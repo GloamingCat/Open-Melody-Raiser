@@ -1,0 +1,10 @@
+__pycache__
+fluidsynth
+ignore
+*.mid
+*.ogg
+*.mp3
+*.wav
+*.sf2
+*.json
+*.proj
