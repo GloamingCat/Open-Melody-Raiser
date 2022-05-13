@@ -160,9 +160,46 @@ class BarLabel(tkinter.Label):
 # Bar Frame
 ###############################################################################
 
+class PartSelector(tkinter.Frame):
+
+	def __init__(self, top):
+		super().__init__(top)
+		self._selectedPart = -1
+		self._partFrames = []
+
+	def setRiff(self, riff):
+		for part in self._partFrames:
+			part.destroy()
+		self._partFrames = []
+		for i, part in enumerate(riff):
+			self.addPart(i, part)
+
+	def addPart(self, i, notes):
+		frame = tkinter.Frame(self, borderwidth=2, relief=BORDEROFF)
+		frame.bind("<Button-1>", lambda e: self.selectPart(i))
+		label = tkinter.Label(frame, width=5)
+		label.pack(side=tkinter.LEFT)
+		label.bind("<Button-1>", lambda e: self.selectPart(i))
+		for j, note in enumerate(notes):
+			label = NoteLabel(frame, self, note, i)
+			label["bg"] = "white" if i % 2 == 0 else "lightgrey"
+			label.pack(side=tkinter.LEFT, padx=2, pady=2)
+		self._partFrames.append(frame)
+		frame.pack(side=tkinter.TOP)
+
+	def selectPart(self, index):
+		if self._selectedPart >= 0:
+			self._partFrames[self._selectedPart]["relief"] = BORDEROFF
+		self._selectedPart = index
+		if index >= 0:
+			self._partFrames[index]["relief"] = BORDERON
+
+	def isSelected(self, index):
+		return self._selectedPart == index
+
 class NoteLabel(tkinter.Label):
 
-	def __init__(self, top, note):
+	def __init__(self, top, frame, note, i):
 		super().__init__(top, width=3, borderwidth=1, relief="solid", padx=3, pady=3)
 		self._note = note
 		if note["mode"] == 0:
@@ -171,7 +208,7 @@ class NoteLabel(tkinter.Label):
 			self["text"] = self._noteText()
 		else:
 			self["text"] = " - "
-		self.bind("<Button-1>", lambda *x: self._step(1))
+		self.bind("<Button-1>", lambda *x: (self._step(1), frame.selectPart(i)))
 		self.bind("<Button-3>", lambda *x: self._step(-1))
 		self.bind("<Shift-Button-1>", lambda *x: self._accStep(1))
 		self.bind("<Shift-Button-3>", lambda *x: self._accStep(-1))

@@ -168,7 +168,6 @@ class BarFrame(tkinter.LabelFrame):
 	def __init__(self, top):
 		super().__init__(top, text="Bar Composer")
 		BarFrame.singleton = self
-		self._parts = []
 		self.columnconfigure(5, weight=1)
 		self.rowconfigure(1, weight=1)
 		# Root
@@ -181,36 +180,16 @@ class BarFrame(tkinter.LabelFrame):
 		label.grid(column=2, row=0, padx=2, pady=2)
 		self._divsLabel = tkinter.Label(self, width=4)
 		self._divsLabel.grid(column=3, row=0, padx=2, pady=2)
-		button = tkinter.Button(self, text="Change", command=self._onChangeDivs)
-		button.grid(column=4, row=0, padx=5, pady=5)
 		# Riff editor
 		self._scrollFrame = ui_widgets.ScrollableFrame(self)
 		self._scrollFrame.grid(column=0, row=1, columnspan=6, sticky=tkinter.NSEW)
 		tkinter.Label(self).grid(column=5, row=0)
-
-	def _onChangeDivs(self):
-		divs = tkinter.simpledialog.askinteger("Bar Divisions", "Insert number of divisions in this bar",
-			initialvalue=int(self._divsLabel["text"]))
-		if divs and divs >= 1:
-			self._divsLabel.configure(text=str(divs))
+		self.partSelector = ui_widgets.PartSelector(self._scrollFrame.innerFrame())
+		self.partSelector.pack(expand=True, fill='both')
 
 	def loadBar(self, barLabel):
-		for part in self._parts:
-			for label in part:
-				label.destroy()
-		self._parts = []
 		self._divsLabel.configure(textvariable=barLabel.divsVar)
 		self._divsLabel["text"] = barLabel.divsVar.get()
 		self._rootBox.configure(textvariable=barLabel.rootVar)
 		self._rootBox["value"] = barLabel.rootVar.get()
-		for part in barLabel.riff:
-			self.addPart(part)
-
-	def addPart(self, notes):
-		index = len(self._parts)
-		self._parts.append([])
-		for j, note in enumerate(notes):
-			label = ui_widgets.NoteLabel(self._scrollFrame.innerFrame(), note)
-			label["bg"] = "white" if index % 2 == 0 else "lightgrey"
-			label.grid(row=index, column=j)
-			self._parts[index].append(label)
+		self.partSelector.setRiff(barLabel.riff)
