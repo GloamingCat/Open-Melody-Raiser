@@ -74,7 +74,7 @@ class MainMenu(tkinter.Menu):
 
 	def openProject(self, event=None):
 		filetypes = (
-	        ('Project files', '*.proj'),
+	        ('Project files (.proj)', '*.proj'),
 	        ('All files', '*.*'))
 		filename = tkinter.filedialog.askopenfilename(
 			title='Open a project file',
@@ -87,7 +87,7 @@ class MainMenu(tkinter.Menu):
 
 	def saveProject(self, event=None):
 		filetypes = (
-	        ('Project files', '*.proj'),
+	        ('Project files (.proj)', '*.proj'),
 	        ('All files', '*.*'))
 		filename = tkinter.filedialog.asksaveasfilename(
 			title='Selected file name',

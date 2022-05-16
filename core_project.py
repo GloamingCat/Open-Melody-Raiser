@@ -92,7 +92,7 @@ def exportMidi(project, file = "temp.mid"):
 
 def savePreset(preset, file):
 	f = open(file, "w")
-	f.write(json.dumps(project))
+	f.write(json.dumps(preset))
 	f.close()
 
 def saveProject(project, file):

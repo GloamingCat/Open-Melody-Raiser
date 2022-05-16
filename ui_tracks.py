@@ -66,6 +66,7 @@ class TrackSelector(tkinter.Frame):
 		frame.index = index
 		def selectTrack(e):
 			self._onTrackClick(self.selectTrack(frame.index))
+			self._onBarClick(None)
 		frame["relief"] = ui_common.BORDEROFF
 		frame.bind("<Button-1>", selectTrack)
 		frame.bind("<Button-3>", selectTrack)
@@ -119,8 +120,8 @@ class TrackSelector(tkinter.Frame):
 		if aux >= 0 and aux < len(self._trackFrames):
 			x, y = self._trackFrames[self._selectedTrack], self._trackFrames[aux]
 			self._trackFrames[self._selectedTrack], self._trackFrames[aux] = y, x
-			self.selectTrack(aux)
-			self._onTrackClick()
+			self._onTrackClick(self.selectTrack(aux))
+			self._onBarClick(None)
 
 	def deleteTrack(self):
 		self._trackFrames.pop(self._selectedTrack).destroy()
@@ -129,8 +130,8 @@ class TrackSelector(tkinter.Frame):
 		else:
 			i = self._selectedTrack - 1
 		self._selectedTrack = -1
-		self.selectTrack(i)
-		self._onTrackClick()
+		self._onTrackClick(self.selectTrack(i))
+		self._onBarClick(None)
 
 	def repackFrames(self):
 		for i, frame in enumerate(self._trackFrames):
