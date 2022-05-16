@@ -2,16 +2,18 @@ import tkinter, ui_common
 import pretty_midi.constants as midi
 from tkinter import ttk
 
-class TrackFrame(tkinter.LabelFrame):
+KEYS = ["vol", "rev", "pan", "cho"]
+NAMES = ["Vol", "Rvrb", "Pan", "Chor"]
+POS = [(2, 0, 3, 0), (4, 0, 5, 0), (2, 1, 3, 1), (4, 1, 5, 1)]
+INSTS = [str(i) + ": " + midi.INSTRUMENT_MAP[i] for i in range(len(midi.INSTRUMENT_MAP))]
 
-	def __init__(self, window, onSelectBar=None):
+class TrackGroup(tkinter.LabelFrame):
+
+	def __init__(self, window, onTrackClick=None, onBarClick=None):
 		super().__init__(window, text="Tracks")
-		self._trackSelector = TrackSelector(self, onSelectBar)
+		# Track selector
+		self._trackSelector = TrackSelector(self, onTrackClick, onBarClick)
 		self._trackSelector.pack(expand=True, fill=tkinter.BOTH)
-		menu = ui_common.EditMenu(window, "track",
-			delMsg="The entire selected track will be deleted",
-			receiver=self, op=False, save=False)
-		window.menu.add_cascade(label="Track", menu=menu)
 
 	def loadTracks(self, project):
 		self._trackSelector.setTracks(project["tracks"])
@@ -19,31 +21,27 @@ class TrackFrame(tkinter.LabelFrame):
 	def saveTracks(self, project):
 		project["tracks"] = self._trackSelector.getTracks()
 
-KEYS = ["vol", "rev", "pan", "cho"]
-NAMES = ["Vol", "Rvrb", "Pan", "Chor"]
-POS = [(2, 0, 3, 0), (4, 0, 5, 0), (2, 1, 3, 1), (4, 1, 5, 1)]
-INSTS = [str(i) + ": " + midi.INSTRUMENT_MAP[i] for i in range(len(midi.INSTRUMENT_MAP))]
-
 class TrackSelector(tkinter.Frame):
 
-	def __init__(self, top, onSelectBar=None):
+	def __init__(self, top, onTrackClick, onBarClick):
 		super().__init__(top)
 		self._scrollFrame = ui_common.ScrollableFrame(self)
 		self._scrollFrame.pack(fill=tkinter.BOTH, expand=True)
 		self._trackVars = dict()
 		self._trackFrames = []
 		self._selectedTrack = -1
-		self._onSelectBar = onSelectBar
+		self._onBarClick = onBarClick
+		self._onTrackClick = onTrackClick
 
 	def getTracks(self):
 		tracks = []
-		for i, selector in enumerate(self._barSelectors):
+		for i, frame in enumerate(self._trackFrames):
 			track = {}
 			track["name"] = self._trackVars["name"][i].get()
 			track["inst"] = INSTS.index(self._trackVars["inst"][i].get())
 			for k in KEYS:
 				track[k] = int(self._trackVars[k][i].get())
-			track["pats"] = selector.buildBars()
+			track["pats"] = frame.barSelector.buildBars()
 			tracks.append(track)
 		return tracks
 
@@ -55,86 +53,128 @@ class TrackSelector(tkinter.Frame):
 		for frame in self._trackFrames:
 			frame.destroy()
 		self._trackFrames = []
-		self._barSelectors = []
 		self._selectedTrack = -1
 		self._scrollFrame.innerFrame().columnconfigure(4, weight=1)
 		for track in tracks:
-			frame = self.insertTrack(track)
-			frame.pack(fill=tkinter.BOTH)
+			self.insertTrack(track)
+		self.repackFrames()
 
 	def insertTrack(self, track):
-		nameVar = tkinter.StringVar(value=track["name"])
-		instVar = tkinter.StringVar(value=INSTS[track["inst"]])
-		self._trackVars["name"].append(nameVar)
-		self._trackVars["inst"].append(instVar)
 		index = len(self._trackFrames)
 		bg = "white" if index % 2 == 0 else "lightgrey"
-		def select(*x):
-			self.selectTrack(index)
 		frame = tkinter.Frame(self._scrollFrame.innerFrame(), borderwidth=2, bg=bg)
+		frame.index = index
+		def selectTrack(e):
+			self._onTrackClick(self.selectTrack(frame.index))
 		frame["relief"] = ui_common.BORDEROFF
-		frame.bind("<Button-1>", select)
+		frame.bind("<Button-1>", selectTrack)
+		frame.bind("<Button-3>", selectTrack)
+		# Variables
+		nameVar = tkinter.StringVar(value=track["name"] if track else "New Track")
+		instVar = tkinter.StringVar(value=INSTS[track["inst"]] if track else INSTS[0])
+		self._trackVars["name"].append(nameVar)
+		self._trackVars["inst"].append(instVar)
 		# Name
 		entry = tkinter.Entry(frame, textvariable=nameVar)
-		entry.grid(column=0, row=index*3, sticky="ew", padx=5, pady=5)
+		entry.grid(column=0, row=0, sticky="ew", padx=5, pady=5)
 		# Play Mode button
 		button = ui_common.ToggleButton(frame, [" On ", "Mute", "Solo"])
-		button.grid(column=1, row=index*3, sticky=tkinter.EW, padx=2, pady=5)
+		button.grid(column=1, row=0, sticky=tkinter.EW, padx=2, pady=5)
 		# Instrument
 		box = ttk.Combobox(frame, width=8, state='readonly', textvariable=instVar, value=instVar.get())
 		box["values"] = INSTS
-		box.grid(column=0, row=index*3+1, columnspan=2, sticky=tkinter.EW, padx=5, pady=5)
+		box.grid(column=0, row=1, columnspan=2, sticky=tkinter.EW, padx=5, pady=5)
 		# Properties
 		for k, n, p in zip(KEYS, NAMES, POS):
-			var = tkinter.StringVar(value=track[k])
+			var = tkinter.StringVar(value=track[k] if track else 64)
 			self._trackVars[k].append(var)
 			label = tkinter.Label(frame, text=n + ":", bg=bg)
-			label.bind("<Button-1>", select)
-			label.grid(column=p[0], row=p[1]+index*3, sticky=tkinter.W, padx=2, pady=2)
+			label.bind("<Button-1>", selectTrack)
+			label.bind("<Button-3>", selectTrack)
+			label.grid(column=p[0], row=p[1], sticky=tkinter.W, padx=2, pady=2)
 			box = ttk.Spinbox(frame, from_=1, to=127, width=4, textvariable=var)
-			box.grid(column=p[2], row=p[3]+index*3, sticky=tkinter.EW, padx=2, pady=2)
+			box.grid(column=p[2], row=p[3], sticky=tkinter.EW, padx=2, pady=2)
 		# Bar list
-		barFrame = BarSelector(frame, index, track["pats"], self.selectBarLabel)
-		barFrame.grid(column=6, row=index*3, padx=2, pady=2, rowspan=3, sticky=tkinter.NSEW)
-		self._trackFrames.append(frame)
-		self._barSelectors.append(barFrame)
+		def selectBar(b):
+			self._onTrackClick(self.selectTrack(b.trackIndex()))
+			self._onBarClick(b)
+		frame.barSelector = BarSelector(frame, track["pats"] if track else [], selectBar)
+		frame.barSelector.grid(column=6, row=0, padx=2, pady=2, rowspan=3, sticky=tkinter.NSEW)
+		if self._selectedTrack >= 0:
+			self._trackFrames.insert(self._selectedTrack, frame)
+			self.selectTrack(self._selectedTrack + 1)
+		else:
+			self._trackFrames.append(frame)
 		return frame
 
-	def selectBarLabel(self, barLabel):
-		self.selectTrack(barLabel.trackIndex())
-		if self._onSelectBar:
-			self._onSelectBar(barLabel)
+	def replaceTrack(self, obj):
+		self._trackVars["name"][self._selectedTrack].set(obj["name"])
+		self._trackVars["inst"][self._selectedTrack].set(INSTS[int(obj["inst"])])
+		for k in KEYS:
+			self._trackVars[k][self._selectedTrack].set(obj[k])
+		self._trackFrames[self._selectedTrack].barSelector.setBars(obj["pats"])
+
+	def moveTrack(self, i):
+		aux = self._selectedTrack + i
+		if aux >= 0 and aux < len(self._trackFrames):
+			x, y = self._trackFrames[self._selectedTrack], self._trackFrames[aux]
+			self._trackFrames[self._selectedTrack], self._trackFrames[aux] = y, x
+			self.selectTrack(aux)
+			self._onTrackClick()
+
+	def deleteTrack(self):
+		self._trackFrames.pop(self._selectedTrack).destroy()
+		if self._selectedTrack < len(self._trackFrames):
+			i = self._selectedTrack
+		else:
+			i = self._selectedTrack - 1
+		self._selectedTrack = -1
+		self.selectTrack(i)
+		self._onTrackClick()
+
+	def repackFrames(self):
+		for i, frame in enumerate(self._trackFrames):
+			frame.index = i
+			frame.pack(fill=tkinter.BOTH)
 
 	def selectTrack(self, index):
 		if index == self._selectedTrack:
-			return
+			return self._trackFrames[index] if index >= 0 else None
 		if self._selectedTrack >= 0:
-			self._trackFrames[self._selectedTrack]["relief"] = ui_common.BORDEROFF
-			self._barSelectors[self._selectedTrack].selectBar(-1)
+			frame = self._trackFrames[self._selectedTrack]
+			frame["relief"] = ui_common.BORDEROFF
+			frame.barSelector.selectBar(-1)
 		self._selectedTrack = index
 		if index >= 0:
 			self._trackFrames[index]["relief"] = ui_common.BORDERON
+			return self._trackFrames[index]
+		else:
+			return None
 
 class BarSelector(tkinter.Frame):
 
-	def __init__(self, top, index, bars, onClick):
-		super().__init__(top)
-		self._trackIndex = index
+	def __init__(self, trackFrame, bars, onClick):
+		super().__init__(trackFrame)
+		self._trackFrame = trackFrame
 		self._selectedBar = -1
 		self._labels = []
 		self._onClick = onClick
-		for i in range(len(bars)):
-			self.addBar(bars[i], i)
+		for i, bar in enumerate(bars):
+			self.insertBar(bar, i)
 
-	def addBar(self, bar, index):
-		label = BarLabel(self, bar, index, self._trackIndex)
+	def setBars(self, bars):
+		for bar, label in zip(bars, self._labels):
+			label.setBar(bar)
+
+	def insertBar(self, bar, index):
+		label = BarLabel(self, bar, index, self._trackFrame)
 		label.pack(side=tkinter.LEFT, fill=tkinter.BOTH, padx=2, pady=2)
 		label.bind("<Button-1>", lambda *x : self._onClick(self.selectBar(index)))
 		self._labels.append(label)
 
 	def selectBar(self, index):
 		if index == self._selectedBar:
-			return self._labels[index]
+			return self._labels[index] if index >= 0 else None
 		if self._selectedBar >= 0:
 			self._labels[self._selectedBar].deselect()
 		self._selectedBar = index
@@ -150,16 +190,24 @@ class BarSelector(tkinter.Frame):
 
 class BarLabel(tkinter.Label):
 
-	def __init__(self, top, bar, index, trackIndex):
+	def __init__(self, top, bar, index, trackFrame):
 		super().__init__(top, text="Bar " + str(index), width=6, bg="pink", relief=ui_common.BORDEROFF)
 		self._index = index
-		self._trackIndex = trackIndex
+		self._trackFrame = trackFrame
 		self.rootVar = tkinter.StringVar(value=bar["root"])
 		self.divsVar = tkinter.StringVar(value=bar["divs"])
+		self.setRiff(bar["riff"], bar["divs"])
+
+	def setPat(self, bar):
+		self.rootVar = tkinter.StringVar(value=bar["root"])
+		self.divsVar = tkinter.StringVar(value=bar["divs"])
+		self.setRiff(bar["riff"], bar["divs"])
+
+	def setRiff(self, riff, divs):
 		self.riff = []
-		for part in bar["riff"]:
+		for part in riff:
 			notes = []
-			for j in range(bar["divs"]):
+			for j in range(divs):
 				notes.append({"pitch": 0, "acc": 0, "mode": 0})
 			for (t, p, a) in zip(part["attacks"], part["pitches"], part["acc"]):
 				if p == -127:
@@ -196,7 +244,7 @@ class BarLabel(tkinter.Label):
 		self["relief"] = ui_common.BORDEROFF
 
 	def trackIndex(self):
-		return self._trackIndex
+		return self._trackFrame.index
 
 ###############################################################################
 # Quick Test
@@ -206,6 +254,8 @@ if __name__ == "__main__":
 	main = tkinter.Tk()
 	main.menu = tkinter.Menu(main)
 	main.config(menu=main.menu)
-	frame = TrackFrame(main)
+	frame = TrackGroup(main, lambda t: print("Track click"), lambda b: print("Bar click"))
+	project = {"tracks": []}
+	frame.loadTracks(project)
 	frame.pack()
 	main.mainloop()

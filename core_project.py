@@ -90,10 +90,13 @@ def exportMidi(project, file = "temp.mid"):
 	midi.instruments.append(drumtrack)
 	midi.write(file)
 
-def saveProject(project, file):
+def savePreset(preset, file):
 	f = open(file, "w")
 	f.write(json.dumps(project))
 	f.close()
+
+def saveProject(project, file):
+	savePreset(project, file)
 
 ###############################################################################
 # Util

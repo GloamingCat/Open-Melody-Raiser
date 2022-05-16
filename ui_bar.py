@@ -1,9 +1,9 @@
 import tkinter, ui_common
 from tkinter import ttk
 
-class BarFrame(tkinter.LabelFrame):
+class BarGroup(tkinter.LabelFrame):
 
-	def __init__(self, window):
+	def __init__(self, window, onPartClick=None):
 		super().__init__(window, text="Bar Composer")
 		self.columnconfigure(5, weight=1)
 		self.rowconfigure(1, weight=1)
@@ -21,47 +21,48 @@ class BarFrame(tkinter.LabelFrame):
 		self._scrollFrame = ui_common.ScrollableFrame(self)
 		self._scrollFrame.grid(column=0, row=1, columnspan=6, sticky=tkinter.NSEW)
 		tkinter.Label(self).grid(column=5, row=0)
-		self._partSelector = PartSelector(self._scrollFrame.innerFrame())
+		self._partSelector = PartSelector(self._scrollFrame.innerFrame(), onPartClick)
 		self._partSelector.pack(expand=True, fill='both')
-		# Bar menu
-		barMenu = ui_common.EditMenu(self, "bar",
-			delMsg="All bars in the time stamp of the selected bar will be deleted"+
-			"and all tracks will be shortened by 1 bar",
-			receiver=self, move=False)
-		window.menu.add_cascade(label="Bar", menu=barMenu)
-		# Part Menu
-		partMenu = ui_common.EditMenu(self, "part",
-			delMsg="The selected part of the selected bar will be deleted",
-			receiver=self._partSelector)
-		window.menu.add_cascade(label="Part", menu=partMenu)
 
 	def loadBar(self, barLabel):
-		self._divsLabel.configure(textvariable=barLabel.divsVar)
-		self._divsLabel["text"] = barLabel.divsVar.get()
-		self._rootBox.configure(textvariable=barLabel.rootVar)
-		self._rootBox["value"] = barLabel.rootVar.get()
-		self._partSelector.setRiff(barLabel.riff)
+		if barLabel:
+			self._divsLabel.configure(textvariable=barLabel.divsVar)
+			self._divsLabel["text"] = barLabel.divsVar.get()
+			self._rootBox.configure(textvariable=barLabel.rootVar)
+			self._rootBox["value"] = barLabel.rootVar.get()
+			self._partSelector.setRiff(barLabel.riff)
+		else:
+			self._divsLabel.configure(textvariable=None)
+			self._divsLabel["text"] = ""
+			self._rootBox.configure(textvariable=None)
+			self._rootBox["value"] = ""
+			self._partSelector.setRiff([])
 
 class PartSelector(tkinter.Frame):
 
-	def __init__(self, top):
+	def __init__(self, top, onPartClick):
 		super().__init__(top)
 		self._selectedPart = -1
 		self._partFrames = []
+		self._onClick = onPartClick
 
 	def setRiff(self, riff):
 		for part in self._partFrames:
 			part.destroy()
 		self._partFrames = []
 		for i, part in enumerate(riff):
-			self.addPart(i, part)
+			self.insertPart(i, part)
 
-	def addPart(self, i, notes):
+	def insertPart(self, i, notes):
+		def select(e):
+			self.selectPart(i)
 		frame = tkinter.Frame(self, borderwidth=2, relief=ui_common.BORDEROFF)
-		frame.bind("<Button-1>", lambda e: self.selectPart(i))
+		frame.bind("<Button-1>", select)
+		frame.bind("<Button-3>", select)
 		label = tkinter.Label(frame, width=5)
 		label.pack(side=tkinter.LEFT)
-		label.bind("<Button-1>", lambda e: self.selectPart(i))
+		label.bind("<Button-1>", select)
+		label.bind("<Button-3>", select)
 		for j, note in enumerate(notes):
 			label = NoteLabel(frame, self, note, i)
 			label["bg"] = "white" if i % 2 == 0 else "lightgrey"
@@ -147,6 +148,6 @@ if __name__ == "__main__":
 	main = tkinter.Tk()
 	main.menu = tkinter.Menu(main)
 	main.config(menu=main.menu)
-	frame = BarFrame(main)
+	frame = BarGroup(main)
 	frame.pack()
 	main.mainloop()

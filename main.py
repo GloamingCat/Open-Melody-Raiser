@@ -1,49 +1,60 @@
 #!/usr/bin/python
 
-import ui_signature, ui_tracks, ui_bar
+import ui_signature, ui_tracks, ui_bar, ui_menu, ui_creation
 import core_project, core_audio
 import tkinter
 from tkinter import ttk, filedialog, messagebox
 
 class MainMenu(tkinter.Menu):
 
-	def __init__(self, window):
+	def __init__(self, window, barGroup, trackGroup):
 		super().__init__(window)
 		window.config(menu=self)
 		self.window = window
 		# File menu
-		fileMenu = tkinter.Menu(self, tearoff=False)
-		fileMenu.add_command(label="New Project", 
+		self.fileMenu = tkinter.Menu(self, tearoff=False)
+		self.fileMenu.add_command(label="New Project", 
 			accelerator="Ctrl+N", 
 			command=self.newProject)
 		window.bind_all("<Control-n>", self.newProject)
-		fileMenu.add_command(label="New Project Creation...", 
+		self.fileMenu.add_command(label="New Project Creation...", 
 			accelerator="Ctrl+G", 
 			command=self.generateProject)
 		window.bind_all("<Control-g>", self.generateProject)
-		fileMenu.add_command(label="Open Project", 
+		self.fileMenu.add_command(label="Open Project", 
 			accelerator="Ctrl+O", 
 			command=self.openProject)
 		window.bind_all("<Control-o>", self.openProject)
-		fileMenu.add_command(label="Save Project", 
+		self.fileMenu.add_command(label="Save Project", 
 			accelerator="Ctrl+S", 
 			command=self.saveProject)
 		window.bind_all("<Control-s>", self.saveProject)
-		fileMenu.add_command(label="Exit", command=window.destroy)
-		self.add_cascade(label="File", menu=fileMenu)
+		self.fileMenu.add_separator()
+		self.fileMenu.add_command(label="Exit", command=window.destroy)
+		self.add_cascade(label="File", menu=self.fileMenu)
+		# Track Menu
+		self.trackMenu = ui_menu.TrackMenu(self, trackGroup)
+		self.add_cascade(label="Track", menu=self.trackMenu)
+		# Bar Menu
+		self.barMenu = ui_menu.BarMenu(self, barGroup, trackGroup)
+		self.add_cascade(label="Bar", menu=self.barMenu)
+		# Part Menu
+		self.partMenu = ui_menu.PartMenu(self, barGroup, trackGroup)
+		self.add_cascade(label="Part", menu=self.partMenu)
 		# Audio menu
-		audioMenu = tkinter.Menu(self, tearoff=False)
-		audioMenu.add_command(label="Play", 
+		self.audioMenu = tkinter.Menu(self, tearoff=False)
+		self.audioMenu.add_command(label="Play", 
 			accelerator="Ctrl+R",
 			command=self.audioPlay)
 		window.bind_all("<Control-r>", self.audioPlay)
-		audioMenu.add_command(label="Stop",
+		self.audioMenu.add_command(label="Stop",
 			accelerator="Ctrl+E",
 			command=self.audioStop)
 		window.bind_all("<Control-e>", self.audioPlay)
-		audioMenu.add_command(label="Convert to OGG", 
+		self.audioMenu.add_separator()
+		self.audioMenu.add_command(label="Convert to OGG", 
 			command=self.audioConvert)
-		self.add_cascade(label="Audio", menu=audioMenu)
+		self.add_cascade(label="Audio", menu=self.audioMenu)
 
 	###########################################################################
 	# File
@@ -55,7 +66,7 @@ class MainMenu(tkinter.Menu):
 		self.window.updateGUI(project)
 
 	def generateProject(self, event=None):
-		dialog = ui_dialog.SongCreationDialog(self.window)
+		dialog = ui_creation.SongCreationDialog(self.window)
 		if dialog.result:
 			self.window.projVar.set("unsaved")
 			project = core_project.generateProject(dialog.result)
@@ -122,26 +133,31 @@ class MainWindow(tkinter.Tk):
 		self.wm_title("Open Melody Raiser")
 		self.projVar = tkinter.StringVar()
 		self.projVar.trace('w', lambda *x : self.wm_title("Open Melody Raiser - " + self.projVar.get()))
-		# Window menu
-		self.menu = MainMenu(self)
 		# Music signature
-		self.sigFrame = ui_signature.SignatureFrame(self)
-		self.sigFrame.pack(side=tkinter.TOP, padx=5, pady=5)
+		self.sigGroup = ui_signature.SignatureGroup(self)
+		self.sigGroup.pack(side=tkinter.TOP, padx=5, pady=5)
 		# Tracks
-		self.trackFrame = ui_tracks.TrackFrame(self, onSelectBar=self.onSelectBar)
-		self.trackFrame.pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=True, padx=5, pady=5)
+		self.trackGroup = ui_tracks.TrackGroup(self, 
+			onBarClick=self.onSelectBar, 
+			onTrackClick=self.onSelectTrack)
+		self.trackGroup.pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=True, padx=5, pady=5)
 		# Bar Composer
-		self.barFrame = ui_bar.BarFrame(self)
-		self.barFrame.pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=True, padx=5, pady=5)
+		self.barGroup = ui_bar.BarGroup(self,
+			onPartClick=self.onSelectPart)
+		self.barGroup.pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=True, padx=5, pady=5)
+		# Window menu
+		self.menu = MainMenu(self,
+			trackGroup = self.trackGroup,
+			barGroup = self.barGroup)
 
 	def updateGUI(self, project):
-		self.sigFrame.loadSignature(project)
-		self.trackFrame.loadTracks(project)
+		self.sigGroup.loadSignature(project)
+		self.trackGroup.loadTracks(project)
 		
 	def buildProject(self):
 		project = core_project.defaultProject()
-		self.sigFrame.saveSignature(project)
-		self.trackFrame.saveTracks(project)
+		self.sigGroup.saveSignature(project)
+		self.trackGroup.saveTracks(project)
 		return project
 
 	###########################################################################
@@ -149,7 +165,14 @@ class MainWindow(tkinter.Tk):
 	###########################################################################
 
 	def onSelectBar(self, label):
-		self.barFrame.loadBar(label)
+		self.barGroup.loadBar(label)
+		self.menu.barMenu.onSelect(label != None)
+
+	def onSelectTrack(self, track):
+		self.menu.trackMenu.onSelect(track != None)
+
+	def onSelectPart(self, label):
+		self.menu.partMenu.onSelect(label != None)
 
 if __name__ == "__main__":
 	main = MainWindow()

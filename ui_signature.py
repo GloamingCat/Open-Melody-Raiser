@@ -1,7 +1,7 @@
 import tkinter, ui_common
 from tkinter import ttk
 
-class SignatureFrame(tkinter.LabelFrame):
+class SignatureGroup(tkinter.LabelFrame):
 
 	def __init__(self, top):
 		super().__init__(top, text="Signature")
@@ -61,6 +61,6 @@ class SignatureFrame(tkinter.LabelFrame):
 
 if __name__ == "__main__":
 	main = tkinter.Tk()
-	frame = SignatureFrame(main)
+	frame = SignatureGroup(main)
 	frame.pack()
 	main.mainloop()
