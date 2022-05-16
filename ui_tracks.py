@@ -1,4 +1,4 @@
-import tkinter, ui_common
+import tkinter, ui_common, core_util
 import pretty_midi.constants as midi
 from tkinter import ttk
 
@@ -41,7 +41,7 @@ class TrackSelector(tkinter.Frame):
 			track["inst"] = INSTS.index(self._trackVars["inst"][i].get())
 			for k in KEYS:
 				track[k] = int(self._trackVars[k][i].get())
-			track["pats"] = frame.barSelector.buildBars()
+			track["pats"] = frame.barSelector.buildPats()
 			tracks.append(track)
 		return tracks
 
@@ -183,7 +183,7 @@ class BarSelector(tkinter.Frame):
 			self._labels[index].select()
 		return self._labels[index]
 
-	def buildBars(self):
+	def buildPats(self):
 		bars = []
 		for label in self._labels:
 			bars.append(label.buildPat())
@@ -205,37 +205,13 @@ class BarLabel(tkinter.Label):
 		self.setRiff(bar["riff"], bar["divs"])
 
 	def setRiff(self, riff, divs):
-		self.riff = []
-		for part in riff:
-			notes = []
-			for j in range(divs):
-				notes.append({"pitch": 0, "acc": 0, "mode": 0})
-			for (t, p, a) in zip(part["attacks"], part["pitches"], part["acc"]):
-				if p == -127:
-					notes[t]["mode"] = 2
-				else:
-					notes[t]["mode"] = 1
-					notes[t]["pitch"] = p
-					notes[t]["acc"] = a
-			self.riff.append(notes)
+		self.riff = core_util.convertRiffToUI(riff, divs)
 
 	def buildPat(self):
 		bar = {}
 		bar["root"] = int(self.rootVar.get())
 		bar["divs"] = int(self.divsVar.get())
-		bar["riff"] = []
-		for part in self.riff:
-			t, p, a = [], [], []
-			for i, note in enumerate(part):
-				if note["mode"] == 1:
-					t.append(i)
-					p.append(note["pitch"])
-					a.append(note["acc"])
-				elif note["mode"] == 2:
-					t.append(i)
-					p.append(-127)
-					a.append(0)
-			bar["riff"].append({"attacks": t, "pitches": p, "acc": a})
+		bar["riff"] = core_util.convertRiffToProject(self.riff)
 		return bar
 
 	def select(self):
