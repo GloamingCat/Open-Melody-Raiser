@@ -25,6 +25,7 @@ class BarGroup(tkinter.LabelFrame):
 		self._partSelector.pack(expand=True, fill='both')
 
 	def loadBar(self, barLabel):
+		self.currentLabel = barLabel
 		if barLabel:
 			self._divsLabel.configure(textvariable=barLabel.divsVar)
 			self._rootBox.configure(textvariable=barLabel.rootVar)
@@ -35,15 +36,32 @@ class BarGroup(tkinter.LabelFrame):
 			self._rootBox.configure(textvariable=var)
 			self._partSelector.setRiff([])
 
+	def insertItem(self, index=None):
+		self.currentLabel.selector.insertItem(index)
+
+	def moveItem(self, pos, index=None):
+		self.currentLabel.selector.moveItem(pos, index)
+
+	def deleteItem(self, index=None):
+		self.currentLabel.selector.deleteItem(index)
+
+	def replaceItem(self, data, index=None):
+		self.currentLabel.selector.replaceItem(data, index)
+
 class PartSelector(ui_common.SelectionFrame):
 
 	def __init__(self, top, onPartClick):
 		super().__init__(top)
 		self._onClick = onPartClick
+		self.columnconfigure(0, weight=1)
 
 	def setRiff(self, riff):
 		self._setData(riff)
 		self._repackItems()
+
+	def buildItem(self, index=None):
+		frame = self._items[index or self._current]
+		# TODO
 
 	def _setupItem(self, frame, notes, index): # Override
 		super()._setupItem(frame, notes, index)
@@ -57,7 +75,6 @@ class PartSelector(ui_common.SelectionFrame):
 			label["bg"] = "white" if index % 2 == 0 else "lightgrey"
 			label.pack(side=tkinter.LEFT, fill=tkinter.BOTH, padx=2, pady=2)
 			frame.noteLabels.append(label)
-		frame.pack(side=tkinter.TOP)
 
 	def replaceItem(self, obj, index=None): # Override
 		index = index or self._current
@@ -65,7 +82,15 @@ class PartSelector(ui_common.SelectionFrame):
 		for note, label in zip(notes, frame.noteLabels):
 			label.setNote(note["pitch"], note["acc"], note["mode"])
 
+	def _repackItems(self):
+		for i, frame in enumerate(self._items):
+			frame.index = i
+			frame.grid(column=0, row=i, sticky=tkinter.EW)
+			for label in frame.noteLabels:
+				label["bg"] = "white" if i % 2 == 0 else "lightgrey"
+
 	def _onSelect(self, e):
+		super()._onSelect(e)
 		self._onClick(e.item)
 
 class NoteLabel(tkinter.Label):

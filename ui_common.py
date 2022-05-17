@@ -1,4 +1,4 @@
-import tkinter, core_project
+import tkinter
 from tkinter import ttk
 
 BORDERON = "solid"
@@ -95,7 +95,7 @@ class SelectionFrame(ttk.Frame):
 	def _repackItems(self):
 		for i, item in enumerate(self._items):
 			item.index = i
-			item.pack(fill=tkinter.BOTH)
+			item.pack(side=tkinter.TOP, fill=tkinter.BOTH)
 
 	def _newItem(self):
 		return tkinter.Frame(self, borderwidth=2)
@@ -105,6 +105,7 @@ class SelectionFrame(ttk.Frame):
 		def onSelect(e):
 			e.previous = self._items[self._current] if self._current >= 0 else None
 			e.item = self.selectItem(item.index)
+			e.index = item.index
 			self._onSelect(e)
 		item["relief"] = BORDEROFF
 		item.bind("<Button-1>", onSelect)
@@ -126,33 +127,40 @@ class SelectionFrame(ttk.Frame):
 	def _onSelect(self, event):
 		pass
 
-	def insertItem(self, index=None):
+	def insertItem(self, data, index=None):
 		index = index or self._current
-		if index == -1:
-			index = len(self._items - 1)
+		self.selectItem(-1)
 		item = self._newItem()
-		self._setupItem(item, index)
+		if index == -1:
+			index = len(self._items)
+			self._items.append(item)
+		else:
+			index += 1
+			self._items.insert(index, item)
+		self._setupItem(item, data, index)
 		self._repackItems()
+		self._items[index].event_generate("<Button-1>")
 		return item
 
 	def moveItem(self, pos, index=None):
 		index = index or self._current
 		aux = index + pos
 		if aux >= 0 and aux < len(self._items):
-			x, y = self.items[self._current], self.items[aux]
-			self.items[self._current], self.items[aux] = y, x
-			self._onSelect(self.selectItem(aux))
+			x, y = self._items[self._current], self._items[aux]
+			self._items[self._current], self._items[aux] = y, x
 			self._repackItems()
+			self._items[index].event_generate("<Button-1>")
 
 	def deleteItem(self, index=None):
 		index = index or self._current
 		self._items.pop(index).destroy()
 		if index >= len(self._items):
 			index -= 1
+		print(index, self._current)
 		self._current = -1
-		self._onSelect(self.select(index))
 		self._repackItems()
+		self._items[index].event_generate("<Button-1>")
 
 	def replaceItem(self, data, index=None):
 		index = index or self._current
-		self._setupItem(self._items[index], data)
+		self._setupItem(self._items[index], data, index)

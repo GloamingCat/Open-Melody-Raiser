@@ -36,10 +36,10 @@ class MainMenu(tkinter.Menu):
 		self.trackMenu = ui_menu.TrackMenu(self, trackGroup)
 		self.add_cascade(label="Track", menu=self.trackMenu)
 		# Bar Menu
-		self.barMenu = ui_menu.BarMenu(self, barGroup, trackGroup)
+		self.barMenu = ui_menu.BarMenu(self, barGroup)
 		self.add_cascade(label="Bar", menu=self.barMenu)
 		# Part Menu
-		self.partMenu = ui_menu.PartMenu(self, barGroup, trackGroup)
+		self.partMenu = ui_menu.PartMenu(self, barGroup)
 		self.add_cascade(label="Part", menu=self.partMenu)
 		# Audio menu
 		self.audioMenu = tkinter.Menu(self, tearoff=False)

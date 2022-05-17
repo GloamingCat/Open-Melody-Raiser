@@ -32,16 +32,19 @@ class TrackSelector(ui_common.SelectionFrame):
 		self._onBarClick = onBarClick
 		self._onTrackClick = onTrackClick
 
+	def _repackItems(self):
+		for i, frame in enumerate(self._items):
+			frame.index = i
+			frame.grid(column=0, row=i, sticky=tkinter.EW)
+			bg = "white" if i % 2 == 0 else "lightgrey"
+			frame.configure(bg=bg)
+			for child in frame.configLabels:
+				child.configure(bg=bg)
+
 	def getTracks(self):
 		tracks = []
 		for i, frame in enumerate(self._items):
-			track = {}
-			track["name"] = self._trackVars["name"][i].get()
-			track["inst"] = INSTS.index(self._trackVars["inst"][i].get())
-			for k in KEYS:
-				track[k] = int(self._trackVars[k][i].get())
-			track["pats"] = frame.barSelector.getPats()
-			tracks.append(track)
+			tracks.append(self.buildItem(i))
 		return tracks
 
 	def setTracks(self, tracks):
@@ -75,6 +78,7 @@ class TrackSelector(ui_common.SelectionFrame):
 		box["values"] = INSTS
 		box.grid(column=0, row=1, columnspan=2, sticky=tkinter.EW, padx=5, pady=5)
 		# Properties
+		frame.configLabels = []
 		for k, n, p in zip(KEYS, NAMES, POS):
 			var = tkinter.StringVar(value=track[k] if track else 64)
 			self._trackVars[k].append(var)
@@ -84,6 +88,7 @@ class TrackSelector(ui_common.SelectionFrame):
 			label.grid(column=p[0], row=p[1], sticky=tkinter.W, padx=2, pady=2)
 			box = ttk.Spinbox(frame, from_=1, to=127, width=4, textvariable=var)
 			box.grid(column=p[2], row=p[3], sticky=tkinter.EW, padx=2, pady=2)
+			frame.configLabels.append(label)
 		def onSelectBar(b):
 			self._onTrackClick(self.selectItem(frame.index))
 			self._onBarClick(b)
@@ -91,6 +96,7 @@ class TrackSelector(ui_common.SelectionFrame):
 		frame.barSelector.grid(column=6, row=0, padx=2, pady=2, rowspan=3, sticky=tkinter.NSEW)
 
 	def _onSelect(self, e): # Override
+		super()._onSelect(e)
 		self._onTrackClick(e.item)
 		self._onBarClick(None)
 
@@ -101,11 +107,28 @@ class TrackSelector(ui_common.SelectionFrame):
 
 	def replaceItem(self, obj, index=None): # Override
 		index = index or self._current
-		self._trackVars["name"][index].set(obj["name"])
-		self._trackVars["inst"][index].set(INSTS[int(obj["inst"])])
+		if obj:
+			self._trackVars["name"][index].set(obj["name"])
+			self._trackVars["inst"][index].set(INSTS[int(obj["inst"])])
+			for k in KEYS:
+				self._trackVars[k][index].set(obj[k])
+			self._items[index].barSelector.setPats(obj["pats"])
+		else:
+			self._trackVars["name"][index].set("New Track")
+			self._trackVars["inst"][index].set(INSTS[0])
+			for k in KEYS:
+				self._trackVars[k][index].set(64)
+			self._items[index].barSelector.setPats([])
+
+	def buildItem(self, index=None):
+		index = index or self._current
+		track = {}
+		track["name"] = self._trackVars["name"][index].get()
+		track["inst"] = INSTS.index(self._trackVars["inst"][index].get())
 		for k in KEYS:
-			self._trackVars[k][index].set(obj[k])
-		self._frames[index].barSelector.setPats(obj["pats"])
+			track[k] = int(self._trackVars[k][index].get())
+		track["pats"] = self._items[index].barSelector.getPats()
+		return track
 
 ###############################################################################
 # Bar Labels
@@ -117,6 +140,7 @@ class BarSelector(ui_common.SelectionFrame):
 		super().__init__(top)
 		self._onClick = onClick
 		self.setPats(bars)
+		self.rowconfigure(0, weight=1)
 
 	def getPats(self):
 		bars = []
@@ -131,22 +155,27 @@ class BarSelector(ui_common.SelectionFrame):
 	def _repackItems(self): # Override
 		for i, label in enumerate(self._items):
 			label.setIndex(i)
-			label.pack(side=tkinter.LEFT, fill=tkinter.BOTH, padx=2, pady=2)
+			label.grid(column=i, row=0, sticky=tkinter.NSEW, padx=2, pady=2)
 
 	def _newItem(self): # Override
-		return BarLabel(self)
+		return BarLabel(self, self)
 
 	def _setupItem(self, label, bar, index): # Overidde
 		super()._setupItem(label, bar, index)
 		label.setPat(bar)
 
 	def _onSelect(self, e): # Override
+		super()._onSelect(e)
 		self._onClick(e.item)
+
+	def buildItem(self, index=None):
+		return self._items[index].getPat()
 
 class BarLabel(tkinter.Label):
 
-	def __init__(self, top):
+	def __init__(self, top, selector):
 		super().__init__(top, width=6, bg="pink")
+		self.selector = selector
 
 	def setIndex(self, index):
 		self._index = index

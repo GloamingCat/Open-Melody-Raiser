@@ -4,7 +4,7 @@ from tkinter import ttk
 class CommonMenu(tkinter.Menu):
 
 	def __init__(self, window, typeName,
-			presets=[], delMsg=None,
+			presets=[], delMsg=None, receiver=None,
 			generationDialog=None, presetDialog=None,
 			move=True, replace=True):
 		super().__init__(window, tearoff=False)
@@ -38,6 +38,7 @@ class CommonMenu(tkinter.Menu):
 		self._typeName = typeName
 		self._generationDialog = generationDialog
 		self._presetDialog = presetDialog
+		self._receiver = receiver
 		self.onDeselect()
 
 	def onSelect(self, value=True):
@@ -59,16 +60,16 @@ class CommonMenu(tkinter.Menu):
 	###########################################################################
 
 	def onAddNew(self):
-		self.insert(None)
+		self._receiver.insertItem(None)
 
 	def onDuplicate(self):
-		obj = self.buildSelected()
-		self.insert(obj)
+		obj = self._receiver.buildItem()
+		self._receiver.insertItem(obj)
 
 	def onGenerateNew(self):
 		dialog = self._generationDialog(self.window)
 		if dialog.result:
-			self.insert(dialog.result)
+			self._receiver.insertItem(dialog.result)
 
 	###########################################################################
 	# Replace
@@ -77,7 +78,7 @@ class CommonMenu(tkinter.Menu):
 	def onPreset(self):
 		dialog = self._presetDialog(self.window)
 		if dialog and dialog.result:
-			self.replace(dialog.result)
+			self._receiver.replaceItem(dialog.result)
 
 	def onPresetFile(self):
 		title='Open a %s preset' % (' or '.join(self._presets))
@@ -88,25 +89,25 @@ class CommonMenu(tkinter.Menu):
 	        filetypes=filetypes)
 		if filename and filename != '':
 			obj = core_project.loadPreset(filename)
-			self.replace(obj)
+			self._receiver.replaceItem(obj)
 
 	def onGenerate(self):
 		dialog = self._generationDialog(self.window)
 		if dialog and dialog.result:
-			self.replace(dialog.result)
+			self._receiver.replaceItem(dialog.result)
 
 	def onClear(self):
-		self.replace(None)
+		self._receiver.replaceItem(None)
 
 	###########################################################################
 	# Move / Delete
 	###########################################################################
 
 	def onMoveUp(self):
-		self.move(-1)
+		self._receiver.moveItem(-1)
 
 	def onMoveDown(self):
-		self.move(1)
+		self._receiver.moveItem(1)
 
 	def onDelete(self):
 		result = tkinter.messagebox.askyesno(
@@ -114,7 +115,7 @@ class CommonMenu(tkinter.Menu):
 			message=self._delMsg+". You can't undo this action. "+
 			"Do you want to continue?")
 		if result == tkinter.YES:
-			self.delete()
+			self._receiver.deleteItem()
 
 	###########################################################################
 	# Save
@@ -128,28 +129,8 @@ class CommonMenu(tkinter.Menu):
 	        initialdir='./presets/',
 	        filetypes=filetypes)
 		if filename and filename != '':
-			obj = self.buildSelected()
+			obj = self._receiver.buildItem()
 			core_project.savePreset(obj, filename)
-
-	###########################################################################
-	# Callbacks
-	###########################################################################
-
-	def buildSelected(self):
-		print("Build " + self._typeName)
-		return None
-
-	def insert(self, obj):
-		print("Insert " + self._typeName + ": " + str(obj))
-
-	def replace(self, obj):
-		print("Replace " + self._typeName + ": " + str(obj))
-
-	def move(self, i):
-		print("Move " + self._typeName + ": " + str(i))
-
-	def delete(self):
-		print("Delete " + self._typeName)
 
 ###############################################################################
 # Group Menu
@@ -158,20 +139,20 @@ class CommonMenu(tkinter.Menu):
 class TrackMenu(CommonMenu):
 
 	def __init__(self, window, trackGroup):
-		super().__init__(window, "track",
+		super().__init__(window, "track", receiver=trackGroup._trackSelector,
 			delMsg="The entire selected track will be deleted")
 
 class BarMenu(CommonMenu):
 
-	def __init__(self, window, barGroup, trackGroup):
-		super().__init__(window, "bar",
+	def __init__(self, window, barGroup):
+		super().__init__(window, "bar", receiver=barGroup,
 			delMsg="All bars in the time stamp of the selected bar will "+
 			"be deleted and all tracks will be shortened by 1 bar",
 			move=False, presets=["Bar", "Part"])
 
 class PartMenu(CommonMenu):
 
-	def __init__(self, window, barGroup, trackGroup):
-		super().__init__(window, "part",
+	def __init__(self, window, barGroup):
+		super().__init__(window, "part", receiver=barGroup._partSelector,
 			delMsg="The selected part of the selected bar will be deleted",
 			presets=["Part"])
