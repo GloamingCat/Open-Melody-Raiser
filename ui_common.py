@@ -72,3 +72,87 @@ class ScrollableFrame(ttk.Frame):
 			command=self._canvas.yview)
 		scrollbar.pack(side="right", fill="y")
 		self._canvas.configure(yscrollcommand=scrollbar.set)
+
+class SelectionFrame(ttk.Frame):
+
+	def __init__(self, top, *args, **kwargs):
+		super().__init__(top, *args, **kwargs)
+		self._current = -1
+		self._items = []
+
+	def _setData(self, data):
+		self._clearItems()
+		for i, d in enumerate(data):
+			item = self._newItem()
+			self._items.append(item)
+			self._setupItem(item, d, i)
+
+	def _clearItems(self):
+		for item in self._items:
+			item.destroy()
+		self._items = []
+
+	def _repackItems(self):
+		for i, item in enumerate(self._items):
+			item.index = i
+			item.pack(fill=tkinter.BOTH)
+
+	def _newItem(self):
+		return tkinter.Frame(self, borderwidth=2)
+
+	def _setupItem(self, item, data, index):
+		item.index = index
+		def onSelect(e):
+			e.previous = self._items[self._current] if self._current >= 0 else None
+			e.item = self.selectItem(item.index)
+			self._onSelect(e)
+		item["relief"] = BORDEROFF
+		item.bind("<Button-1>", onSelect)
+		item.bind("<Button-3>", onSelect)
+		item.onSelect = onSelect
+
+	def selectItem(self, index):
+		if index == self._current:
+			return self._items[index] if index >= 0 else None
+		if self._current >= 0:
+			self._items[self._current]["relief"] = BORDEROFF
+		self._current = index
+		if index >= 0:
+			self._items[index]["relief"] = BORDERON
+			return self._items[index]
+		else:
+			return None
+
+	def _onSelect(self, event):
+		pass
+
+	def insertItem(self, index=None):
+		index = index or self._current
+		if index == -1:
+			index = len(self._items - 1)
+		item = self._newItem()
+		self._setupItem(item, index)
+		self._repackItems()
+		return item
+
+	def moveItem(self, pos, index=None):
+		index = index or self._current
+		aux = index + pos
+		if aux >= 0 and aux < len(self._items):
+			x, y = self.items[self._current], self.items[aux]
+			self.items[self._current], self.items[aux] = y, x
+			self._onSelect(self.selectItem(aux))
+			self._repackItems()
+
+	def deleteItem(self, index=None):
+		index = index or self._current
+		self._items.pop(index).destroy()
+		if index >= len(self._items):
+			index -= 1
+		self._current = -1
+		self._onSelect(self.select(index))
+		self._repackItems()
+
+	def replaceItem(self, data, index=None):
+		index = index or self._current
+		self._setupItem(self._items[index], data)

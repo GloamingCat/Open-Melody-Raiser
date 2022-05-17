@@ -136,23 +136,23 @@ class CommonMenu(tkinter.Menu):
 	###########################################################################
 
 	def buildSelected(self):
-		print("Build")
+		print("Build " + self._typeName)
 		return None
 
 	def insert(self, obj):
-		print("Insert " + str(obj))
+		print("Insert " + self._typeName + ": " + str(obj))
 
 	def replace(self, obj):
-		print("Replace " + str(obj))
+		print("Replace " + self._typeName + ": " + str(obj))
 
 	def move(self, i):
-		print("Move " + str(i))
+		print("Move " + self._typeName + ": " + str(i))
 
 	def delete(self):
-		print("Delete")
+		print("Delete " + self._typeName)
 
 ###############################################################################
-# Track
+# Group Menu
 ###############################################################################
 
 class TrackMenu(CommonMenu):
@@ -160,29 +160,6 @@ class TrackMenu(CommonMenu):
 	def __init__(self, window, trackGroup):
 		super().__init__(window, "track",
 			delMsg="The entire selected track will be deleted")
-		self._trackSelector = trackGroup._trackSelector
-
-	def buildSelected(self):
-		return self._trackSelector.getTracks()
-
-	def insert(self, obj):
-		self._trackSelector.insertTrack(obj)
-		self._trackSelector.repackFrames()
-
-	def replace(self, obj):
-		self._trackSelector.replaceTrack(obj)
-
-	def move(self, i):
-		self._trackSelector.moveTrack(i)
-		self._trackSelector.repackFrames()
-
-	def delete(self):
-		self._trackSelector.deleteTrack()
-		self._trackSelector.repackFrames()
-
-###############################################################################
-# Bar
-###############################################################################
 
 class BarMenu(CommonMenu):
 
@@ -191,10 +168,6 @@ class BarMenu(CommonMenu):
 			delMsg="All bars in the time stamp of the selected bar will "+
 			"be deleted and all tracks will be shortened by 1 bar",
 			move=False, presets=["Bar", "Part"])
-
-###############################################################################
-# Part
-###############################################################################
 
 class PartMenu(CommonMenu):
 

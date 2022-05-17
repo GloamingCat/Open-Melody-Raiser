@@ -27,62 +27,50 @@ class BarGroup(tkinter.LabelFrame):
 	def loadBar(self, barLabel):
 		if barLabel:
 			self._divsLabel.configure(textvariable=barLabel.divsVar)
-			self._divsLabel["text"] = barLabel.divsVar.get()
 			self._rootBox.configure(textvariable=barLabel.rootVar)
-			self._rootBox["value"] = barLabel.rootVar.get()
 			self._partSelector.setRiff(barLabel.riff)
 		else:
-			self._divsLabel.configure(textvariable=None)
-			self._divsLabel["text"] = ""
-			self._rootBox.configure(textvariable=None)
-			self._rootBox["value"] = ""
+			var = tkinter.StringVar(value="")
+			self._divsLabel.configure(textvariable=var)
+			self._rootBox.configure(textvariable=var)
 			self._partSelector.setRiff([])
 
-class PartSelector(tkinter.Frame):
+class PartSelector(ui_common.SelectionFrame):
 
 	def __init__(self, top, onPartClick):
 		super().__init__(top)
-		self._selectedPart = -1
-		self._partFrames = []
 		self._onClick = onPartClick
 
 	def setRiff(self, riff):
-		for part in self._partFrames:
-			part.destroy()
-		self._partFrames = []
-		for i, part in enumerate(riff):
-			self.insertPart(i, part)
+		self._setData(riff)
+		self._repackItems()
 
-	def insertPart(self, i, notes):
-		def select(e):
-			self.selectPart(i)
-		frame = tkinter.Frame(self, borderwidth=2, relief=ui_common.BORDEROFF)
-		frame.bind("<Button-1>", select)
-		frame.bind("<Button-3>", select)
+	def _setupItem(self, frame, notes, index): # Override
+		super()._setupItem(frame, notes, index)
 		label = tkinter.Label(frame, width=5)
 		label.pack(side=tkinter.LEFT)
-		label.bind("<Button-1>", select)
-		label.bind("<Button-3>", select)
+		label.bind("<Button-1>", frame.onSelect)
+		label.bind("<Button-3>", frame.onSelect)
+		frame.noteLabels = []
 		for j, note in enumerate(notes):
-			label = NoteLabel(frame, self, note, i)
-			label["bg"] = "white" if i % 2 == 0 else "lightgrey"
-			label.pack(side=tkinter.LEFT, padx=2, pady=2)
-		self._partFrames.append(frame)
+			label = NoteLabel(frame, note, frame.onSelect)
+			label["bg"] = "white" if index % 2 == 0 else "lightgrey"
+			label.pack(side=tkinter.LEFT, fill=tkinter.BOTH, padx=2, pady=2)
+			frame.noteLabels.append(label)
 		frame.pack(side=tkinter.TOP)
 
-	def selectPart(self, index):
-		if self._selectedPart >= 0:
-			self._partFrames[self._selectedPart]["relief"] = ui_common.BORDEROFF
-		self._selectedPart = index
-		if index >= 0:
-			self._partFrames[index]["relief"] = ui_common.BORDERON
+	def replaceItem(self, obj, index=None): # Override
+		index = index or self._current
+		frame = self._items[index]
+		for note, label in zip(notes, frame.noteLabels):
+			label.setNote(note["pitch"], note["acc"], note["mode"])
 
-	def isSelected(self, index):
-		return self._selectedPart == index
+	def _onSelect(self, e):
+		self._onClick(e.item)
 
 class NoteLabel(tkinter.Label):
 
-	def __init__(self, top, frame, note, i):
+	def __init__(self, top, note, onClick):
 		super().__init__(top, width=3, borderwidth=1, relief="solid", padx=3, pady=3)
 		self._note = note
 		if note["mode"] == 0:
@@ -91,17 +79,17 @@ class NoteLabel(tkinter.Label):
 			self["text"] = self._noteText()
 		else:
 			self["text"] = " - "
-		self.bind("<Button-1>", lambda *x: (self._step(1), frame.selectPart(i)))
-		self.bind("<Button-3>", lambda *x: self._step(-1))
+		self.bind("<Button-1>", lambda e: (self._step(1), onClick(e)))
+		self.bind("<Button-3>", lambda e: (self._step(-1), onClick(e)))
 		self.bind("<Shift-Button-1>", lambda *x: self._accStep(1))
 		self.bind("<Shift-Button-3>", lambda *x: self._accStep(-1))
 		self.bind("<Alt-Button-1>", lambda *x: self.erase())
 		self.bind("<Alt-Button-3>", lambda *x: self.silence())
 
-	def setNote(self, p, a):
+	def setNote(self, p, a, m=1):
 		self._note["pitch"] = p
 		self._note["acc"] = a
-		self._note["mode"] = 1
+		self._note["mode"] = m
 		self["text"] = self._noteText()
 
 	def erase(self):
