@@ -1,23 +1,9 @@
-def project():
+###############################################################################
+# Song
+###############################################################################
+
+def song():
 	project = dict()
-	# Melody track
-	track1 = dict()
-	track1["name"] = "Melody"
-	track1["inst"] = 0
-	track1["vol"] = 100
-	track1["pan"] = 64
-	track1["rev"] = 40
-	track1["cho"] = 0
-	track1["pats"] = []
-	# Harmony track
-	track2 = dict()
-	track2["name"] = "Harmony"
-	track2["inst"] = 25
-	track2["vol"] = 80
-	track2["pan"] = 64
-	track2["rev"] = 20
-	track2["cho"] = 20
-	track2["pats"] = []
 	# Percussion
 	project["vol"] = 100
 	project["pan"] = 64
@@ -29,8 +15,60 @@ def project():
 	project["bpm"] = 90
 	project["timesig"] = [4, 4]
 	project["keysig"] = [12*2+7, 5] # G2 Minor
-	project["tracks"] = [track1, track2]
+	project["tracks"] = [melody(0), harmony(0)]
 	return project
+
+###############################################################################
+# Track
+###############################################################################
+
+def emptyTrack(bars=0):
+	track["name"] = "New Track"
+	track["inst"] = 0
+	track["vol"] = 64
+	track["pan"] = 64
+	track["rev"] = 64
+	track["cho"] = 64
+	for i in range(bars):
+		track["pats"].append(emptyBar())
+	return track
+
+def harmony(bars=0):
+	track = dict()
+	track["name"] = "Harmony"
+	track["inst"] = 25
+	track["vol"] = 80
+	track["pan"] = 64
+	track["rev"] = 20
+	track["cho"] = 20
+	track["pats"] = []
+	for i in range(bars):
+		track["pats"].append(triad(i, 0))
+	return track
+
+def melody(bars=0):
+	track = dict()
+	track["name"] = "Melody"
+	track["inst"] = 0
+	track["vol"] = 100
+	track["pan"] = 64
+	track["rev"] = 40
+	track["cho"] = 0
+	track["pats"] = []
+	for i in range(bars):
+		track["pats"].append(arp(0, 0))
+	return track
+
+###############################################################################
+# Bar
+###############################################################################
+
+def emptyBar():
+	bar = dict()
+	bar["root"] = root
+	bar["divs"] = 4
+	bar["riff"] = []
+	return bar
 
 def arp(i, root):
 	melody = dict()
@@ -44,12 +82,6 @@ def arp(i, root):
 	bar["root"] = root
 	bar["divs"] = 4
 	bar["riff"] = [melody]
-	return bar
-
-def drums(i):
-	bar = dict()
-	bar["divs"] = 8
-	bar["attacks"] = [[1, 0, 2, 0, 1, 0, 2, 0]]
 	return bar
 
 def triad(i, root):
@@ -69,4 +101,10 @@ def triad(i, root):
 	bar["root"] = root
 	bar["divs"] = 2
 	bar["riff"] = [chord1, chord2, chord3]	
+	return bar
+
+def drums(i):
+	bar = dict()
+	bar["divs"] = 8
+	bar["attacks"] = [[1, 0, 2, 0, 1, 0, 2, 0]]
 	return bar

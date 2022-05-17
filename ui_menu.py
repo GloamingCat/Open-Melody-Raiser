@@ -1,4 +1,4 @@
-import tkinter
+import tkinter, ui_creation
 from tkinter import ttk
 
 class CommonMenu(tkinter.Menu):
@@ -67,7 +67,8 @@ class CommonMenu(tkinter.Menu):
 		self._receiver.insertItem(obj)
 
 	def onGenerateNew(self):
-		dialog = self._generationDialog(self.window)
+		dialog = self._generationDialog(self.window,
+			title="Generate new %s " % self._typeName)
 		if dialog.result:
 			self._receiver.insertItem(dialog.result)
 
@@ -76,7 +77,8 @@ class CommonMenu(tkinter.Menu):
 	###########################################################################
 
 	def onPreset(self):
-		dialog = self._presetDialog(self.window)
+		dialog = self._presetDialog(self.window,
+			title="Create %s preset" % self._typeName)
 		if dialog and dialog.result:
 			self._receiver.replaceItem(dialog.result)
 
@@ -92,7 +94,8 @@ class CommonMenu(tkinter.Menu):
 			self._receiver.replaceItem(obj)
 
 	def onGenerate(self):
-		dialog = self._generationDialog(self.window)
+		dialog = self._generationDialog(self.window,
+			title="Generate new %s " % self._typeName)
 		if dialog and dialog.result:
 			self._receiver.replaceItem(dialog.result)
 
@@ -140,12 +143,15 @@ class TrackMenu(CommonMenu):
 
 	def __init__(self, window, trackGroup):
 		super().__init__(window, "track", receiver=trackGroup._trackSelector,
+			generationDialog=ui_creation.NewTrackDialog,
 			delMsg="The entire selected track will be deleted")
 
 class BarMenu(CommonMenu):
 
 	def __init__(self, window, barGroup):
 		super().__init__(window, "bar", receiver=barGroup,
+			generationDialog=ui_creation.NewBarDialog,
+			presetDialog=ui_creation.BarPresetDialog,
 			delMsg="All bars in the time stamp of the selected bar will "+
 			"be deleted and all tracks will be shortened by 1 bar",
 			move=False, presets=["Bar", "Part"])
@@ -154,5 +160,6 @@ class PartMenu(CommonMenu):
 
 	def __init__(self, window, barGroup):
 		super().__init__(window, "part", receiver=barGroup._partSelector,
+			presetDialog=ui_creation.PartPresetDialog,
 			delMsg="The selected part of the selected bar will be deleted",
 			presets=["Part"])

@@ -1,7 +1,4 @@
-#!/usr/bin/python
-
 import pretty_midi, json, sys
-import core_generator as gen
 import core_presets as ps
 import core_util as util
 
@@ -10,7 +7,7 @@ import core_util as util
 ###############################################################################
 
 def defaultProject():
-	project = ps.project()
+	project = ps.song()
 	melodyOct = 5 - (project["keysig"][0] // 12)
 	melody = [
 		ps.arp(0, 7*melodyOct), ps.arp(1, 7*melodyOct), 
@@ -25,16 +22,6 @@ def defaultProject():
 	project["tracks"][0]["pats"] = melody
 	project["tracks"][1]["pats"] = harmony
 	project["drums"] = drums
-	return project
-
-def generateProject(params):
-	project = ps.project()
-	project["timesig"][0] = params["bpb"]
-	project["bpm"] = params["bpm"]
-	params["seedmel"] = 0
-	params["seedhar"] = 0
-	params["bars"] = [int(s) for s in params["bars"].split()]
-	gen.song(project, params)
 	return project
 
 def loadProject(file):
@@ -64,8 +51,7 @@ def exportMidi(project, file = "temp.mid"):
 	# Instrument tracks
 	for track in project["tracks"]:
 		miditrack = pretty_midi.Instrument(program = track["inst"], name = track["name"])
-		for i in range(len(track["pats"])):
-			pat = track["pats"][i]
+		for i, pat in enumerate(track["pats"]):
 			notes = util.createBarNotes(pat, _moveKey(project["keysig"], pat["root"]))
 			for n in notes:
 				n.start = (i + n.start) * spb
@@ -98,6 +84,24 @@ def savePreset(preset, file):
 
 def saveProject(project, file):
 	savePreset(project, file)
+
+###############################################################################
+# Modify
+###############################################################################
+
+def addTrack(project, minBarCount=0):
+	barCount = project["tracks"][0]["pats"] if len(project["tracks"]) > 0 else 0
+	if barCount > minBarCount:
+		# Extend current tracks
+		addBars(project, barCount - minBarCount)
+		# Add track
+		project["tracks"].append(ps.emptyTrack(barCount))
+	else:
+		project["tracks"].append(ps.emptyTrack(minBarCount))
+
+def addBars(project, barCount=0):
+	for track in project["tracks"]:
+		tracks["pats"] += [ps.emptyBar() for i in range(barCount)]
 
 ###############################################################################
 # Test

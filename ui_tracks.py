@@ -21,6 +21,11 @@ class TrackGroup(tkinter.LabelFrame):
 	def saveTracks(self, project):
 		project["tracks"] = self._trackSelector.getTracks()
 
+	def getSelection(self):
+		track = self._trackSelector.selectedIndex
+		bar = self._trackSelector._items[track].barSelector.selectedIndex
+		return (track, bar)
+
 class TrackSelector(ui_common.SelectionFrame):
 
 	def __init__(self, top, onTrackClick, onBarClick):

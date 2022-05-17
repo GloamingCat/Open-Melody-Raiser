@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 import ui_signature, ui_tracks, ui_bar, ui_menu, ui_creation
 import core_project, core_audio
 import tkinter
@@ -66,11 +64,10 @@ class MainMenu(tkinter.Menu):
 		self.window.updateGUI(project)
 
 	def generateProject(self, event=None):
-		dialog = ui_creation.SongCreationDialog(self.window)
+		dialog = ui_creation.NewSongDialog(self.window, title="Create Song")
 		if dialog.result:
 			self.window.projVar.set("unsaved")
-			project = core_project.generateProject(dialog.result)
-			self.window.updateGUI(project)
+			self.window.updateGUI(dialog.result)
 
 	def openProject(self, event=None):
 		filetypes = (

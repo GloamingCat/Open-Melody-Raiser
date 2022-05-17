@@ -124,6 +124,9 @@ class SelectionFrame(ttk.Frame):
 		else:
 			return None
 
+	def selectedIndex(self):
+		return self._current
+
 	def _onSelect(self, event):
 		pass
 

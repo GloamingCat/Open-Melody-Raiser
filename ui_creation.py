@@ -1,4 +1,4 @@
-import tkinter
+import tkinter, core_generator, core_presets
 from tkinter import ttk, simpledialog
 
 class BarCreationFrame(tkinter.LabelFrame):
@@ -42,13 +42,40 @@ class BarCreationFrame(tkinter.LabelFrame):
 		box = ttk.Spinbox(self, from_=1, to=16, width=4, textvariable = params["arp"+suffix])
 		box.grid(column=1, row=4, sticky=tkinter.EW, padx=5, pady=5)
 
-class SongCreationDialog(tkinter.simpledialog.Dialog):
+###############################################################################
+# Dialog
+###############################################################################
 
-	def __init__(self, top):
+class GenerationDialog(tkinter.simpledialog.Dialog):
+
+	def __init__(self, window, *args, **kwargs):
 		self.result = None
 		self._params = dict()
-		super().__init__(top, title="Create Song")
+		self._window = window
+		super().__init__(window, *args, **kwargs)
 		
+	def body(self, frame):
+		return frame
+
+	def buttonbox(self):
+		self.okButton = tkinter.Button(self, text='Generate', command=self.confirm)
+		self.okButton.pack(side=tkinter.LEFT, padx=5, pady=5)
+		self.cancelButton = tkinter.Button(self, text='Cancel', command=self.destroy)
+		self.cancelButton.pack(side=tkinter.LEFT, padx=5, pady=5)
+		self.bind("<Return>", lambda event: self.confirm())
+		self.bind("<Escape>", lambda event: self.destroy())
+
+	def confirm(self):
+		self.result = {}
+		for k, var in self._params.items():
+			if var.get().isnumeric():
+				self.result[k] = int(var.get())
+			else:
+				self.result[k] = var.get()
+		self.destroy()
+
+class NewSongDialog(GenerationDialog):
+
 	def body(self, frame):
 		# Structure/rhythm params
 		self._params["bars"] = tkinter.StringVar(value="1 1 2")
@@ -83,75 +110,52 @@ class SongCreationDialog(tkinter.simpledialog.Dialog):
 		harmonyFrame.pack(side=tkinter.RIGHT, expand=True)
 		return frame
 
-	def buttonbox(self):
-		button = tkinter.Button(self, text='Generate', command=self.confirm)
-		button.pack(side=tkinter.LEFT, padx=5, pady=5)
-		button = tkinter.Button(self, text='Cancel', command=self.destroy)
-		button.pack(side=tkinter.LEFT, padx=5, pady=5)
-		self.bind("<Return>", lambda event: self.confirm())
-		self.bind("<Escape>", lambda event: self.destroy())
-
 	def confirm(self):
-		self.result = {}
-		for k, var in self._params.items():
-			if var.get().isnumeric():
-				self.result[k] = int(var.get())
-			else:
-				self.result[k] = var.get()
-		self.destroy()
+		super().confirm()
+		self.result = core_generator.song(self.result)
 
-class PresetDialog(tkinter.simpledialog.Dialog):
+class NewTrackDialog(GenerationDialog):
 
-	def __init__(self, top, typeName):
-		self.result = None
-		self._params = dict()
-		self._typeName = typeName
-		super().__init__(top, title="Create %s preset"%typeName)
-		
 	def body(self, frame):
 		return frame
 
-	def buttonbox(self):
-		button = tkinter.Button(self, text='Generate', command=self.confirm)
-		button.pack(side=tkinter.LEFT, padx=5, pady=5)
-		button = tkinter.Button(self, text='Cancel', command=self.destroy)
-		button.pack(side=tkinter.LEFT, padx=5, pady=5)
-		self.bind("<Return>", lambda event: self.confirm())
-		self.bind("<Escape>", lambda event: self.destroy())
-
 	def confirm(self):
-		self.result = {}
-		for k, var in self._params.items():
-			if var.get().isnumeric():
-				self.result[k] = int(var.get())
-			else:
-				self.result[k] = var.get()
-		self.destroy()
+		super().confirm()
+		project = self.window.buildProject()
+		(trackPos, barPos) = self.window.trackGroup.getSelection()
+		self.result = core_generator.track(self.result, project["tracks"], trackPos)
 
-class GenerationDialog(tkinter.simpledialog.Dialog):
+class NewBarDialog(GenerationDialog):
 
-	def __init__(self, top, typeName):
-		self.result = None
-		self._params = dict()
-		self._typeName = typeName
-		super().__init__(top, title="Generate %s"%typeName)
-		
 	def body(self, frame):
 		return frame
 
-	def buttonbox(self):
-		button = tkinter.Button(self, text='Generate', command=self.confirm)
-		button.pack(side=tkinter.LEFT, padx=5, pady=5)
-		button = tkinter.Button(self, text='Cancel', command=self.destroy)
-		button.pack(side=tkinter.LEFT, padx=5, pady=5)
-		self.bind("<Return>", lambda event: self.confirm())
-		self.bind("<Escape>", lambda event: self.destroy())
+	def confirm(self):
+		super().confirm()
+		project = self.window.buildProject()
+		(trackPos, barPos) = self.window.trackGroup.getSelection()
+		self.result = core_generator.bar(self.result, project["tracks"], trackPos, barPos)
+
+class BarPresetDialog(GenerationDialog):
+
+	def body(self, frame):
+		self._params["type"] = tkinter.StringVar(value="Triad")
+		self._params["number"] = tkinter.StringVar(value=0)
+		return frame
 
 	def confirm(self):
-		self.result = {}
-		for k, var in self._params.items():
-			if var.get().isnumeric():
-				self.result[k] = int(var.get())
-			else:
-				self.result[k] = var.get()
-		self.destroy()
+		super().confirm()
+		if self.result["type"] == "Triad":
+			self.result = core_presets.triad(self.result["number"], 0)
+		else:
+			self.result = core_presets.arp(self.result["number"], 0)
+
+class PartPresetDialog(GenerationDialog):
+
+	def body(self, frame):
+		self._params["number"] = tkinter.StringVar(value=0)
+		return frame
+
+	def confirm(self):
+		super().confirm()
+		self.result = core_presets.arp(self.result["number"], 0)
