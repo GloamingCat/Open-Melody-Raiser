@@ -34,7 +34,7 @@ class MainMenu(tkinter.Menu):
 		self.trackMenu = ui_menu.TrackMenu(self, trackGroup)
 		self.add_cascade(label="Track", menu=self.trackMenu)
 		# Bar Menu
-		self.barMenu = ui_menu.BarMenu(self, barGroup)
+		self.barMenu = ui_menu.BarMenu(self, barGroup, trackGroup)
 		self.add_cascade(label="Bar", menu=self.barMenu)
 		# Part Menu
 		self.partMenu = ui_menu.PartMenu(self, barGroup)

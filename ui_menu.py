@@ -145,16 +145,18 @@ class TrackMenu(CommonMenu):
 		super().__init__(window, "track", receiver=trackGroup._trackSelector,
 			generationDialog=ui_creation.NewTrackDialog,
 			delMsg="The entire selected track will be deleted")
+		trackGroup._trackSelector._menu = self
 
 class BarMenu(CommonMenu):
 
-	def __init__(self, window, barGroup):
+	def __init__(self, window, barGroup, trackGroup):
 		super().__init__(window, "bar", receiver=barGroup,
 			generationDialog=ui_creation.NewBarDialog,
 			presetDialog=ui_creation.BarPresetDialog,
 			delMsg="All bars in the time stamp of the selected bar will "+
 			"be deleted and all tracks will be shortened by 1 bar",
 			move=False, presets=["Bar", "Part"])
+		trackGroup._trackSelector._barMenu = self
 
 class PartMenu(CommonMenu):
 
@@ -163,3 +165,4 @@ class PartMenu(CommonMenu):
 			presetDialog=ui_creation.PartPresetDialog,
 			delMsg="The selected part of the selected bar will be deleted",
 			presets=["Part"])
+		barGroup._partSelector._menu = self

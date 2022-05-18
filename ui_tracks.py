@@ -36,6 +36,7 @@ class TrackSelector(ui_common.SelectionFrame):
 		self._trackVars = dict()
 		self._onBarClick = onBarClick
 		self._onTrackClick = onTrackClick
+		self._barMenu = None
 
 	def _repackItems(self):
 		for i, frame in enumerate(self._items):
@@ -89,7 +90,7 @@ class TrackSelector(ui_common.SelectionFrame):
 			self._trackVars[k].append(var)
 			label = tkinter.Label(frame, text=n + ":", bg=bg)
 			label.bind("<Button-1>", frame.onSelect)
-			label.bind("<Button-3>", frame.onSelect)
+			label.bind("<Button-3>", frame.onMenu)
 			label.grid(column=p[0], row=p[1], sticky=tkinter.W, padx=2, pady=2)
 			box = ttk.Spinbox(frame, from_=1, to=127, width=4, textvariable=var)
 			box.grid(column=p[2], row=p[3], sticky=tkinter.EW, padx=2, pady=2)
@@ -98,6 +99,7 @@ class TrackSelector(ui_common.SelectionFrame):
 			self._onTrackClick(self.selectItem(frame.index))
 			self._onBarClick(b)
 		frame.barSelector = BarSelector(frame, track["pats"] if track else [], onSelectBar)
+		frame.barSelector._menu = self._barMenu
 		frame.barSelector.grid(column=6, row=0, padx=2, pady=2, rowspan=3, sticky=tkinter.NSEW)
 
 	def _onSelect(self, e): # Override

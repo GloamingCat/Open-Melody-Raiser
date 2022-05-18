@@ -107,10 +107,14 @@ class SelectionFrame(ttk.Frame):
 			e.item = self.selectItem(item.index)
 			e.index = item.index
 			self._onSelect(e)
+		def onMenu(e):
+			onSelect(e)
+			self._popupMenu(e)
 		item["relief"] = BORDEROFF
 		item.bind("<Button-1>", onSelect)
-		item.bind("<Button-3>", onSelect)
+		item.bind("<Button-3>", onMenu)
 		item.onSelect = onSelect
+		item.onMenu = onMenu
 
 	def selectItem(self, index):
 		if index == self._current:
@@ -129,6 +133,14 @@ class SelectionFrame(ttk.Frame):
 
 	def _onSelect(self, event):
 		pass
+
+	def _popupMenu(self, event):
+		if not self._menu:
+			return
+		try:
+			self._menu.tk_popup(event.x_root, event.y_root, 0)
+		finally:
+			self._menu.grab_release()
 
 	def insertItem(self, data, index=None):
 		index = index or self._current
