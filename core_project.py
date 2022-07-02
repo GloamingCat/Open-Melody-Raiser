@@ -38,7 +38,7 @@ def loadProject(file):
 ###############################################################################
 	
 def exportMidi(project, file="temp.mid"):
-	midi = pretty_midi.PrettyMIDI(initial_tempo = project["bpm"])
+	midi = pretty_midi.PrettyMIDI(initial_tempo=project["bpm"])
 	# Header
 	keysig = pretty_midi.KeySignature(util.getKeyNumber(project["keysig"]), 0)
 	midi.key_signature_changes.append(keysig)
@@ -47,9 +47,14 @@ def exportMidi(project, file="temp.mid"):
 	spb = timesig.numerator / project["bpm"] * 60 # seconds per bar
 	# Instrument tracks
 	for track in project["tracks"]:
-		miditrack = pretty_midi.Instrument(program = track["inst"], name = track["name"])
+		is_drum = track["inst"] == -1 or track["inst"] == 128
+		miditrack = pretty_midi.Instrument(name=track["name"], is_drum=is_drum,
+			program=0 if is_drum else track["inst"])
 		for i, pat in enumerate(track["pats"]):
-			notes = util.createBarNotes(pat, util.moveKey(project["keysig"], pat["root"]))
+			if is_drum:
+				notes = util.createBarNotes(pat, None, project["drumset"])
+			else:
+				notes = util.createBarNotes(pat, util.moveKey(project["keysig"], pat["root"]))
 			for n in notes:
 				n.start = (i + n.start) * spb
 				n.end = (i + n.end) * spb
@@ -59,19 +64,6 @@ def exportMidi(project, file="temp.mid"):
 		miditrack.control_changes.append(pretty_midi.ControlChange(91, track["rev"], 0))
 		miditrack.control_changes.append(pretty_midi.ControlChange(93, track["cho"], 0))
 		midi.instruments.append(miditrack)
-	# Percussion tracks
-	drumtrack = pretty_midi.Instrument(program = 0, name = "Drums", is_drum = True)
-	drumtrack.control_changes.append(pretty_midi.ControlChange(7, project["vol"], 0))
-	drumtrack.control_changes.append(pretty_midi.ControlChange(10, project["pan"], 0))
-	drumtrack.control_changes.append(pretty_midi.ControlChange(91, project["rev"], 0))
-	drumtrack.control_changes.append(pretty_midi.ControlChange(93, project["cho"], 0))
-	for i, pat in enumerate(project["drums"]):
-		notes = util.createBarDrums(pat, project["drumset"])
-		for n in notes:
-			n.start = (i + n.start) * spb
-			n.end = (i + n.end) * spb
-		drumtrack.notes += notes
-	midi.instruments.append(drumtrack)
 	midi.write(file)
 
 def savePreset(preset, file):

@@ -15,12 +15,10 @@ def song(params):
 	elif type(params["sections"]) is int:
 		params["sections"] = [params["sections"]]
 	tracks = []
-	tracks.append(track(params, tracks, 'har', harmonyNode, ps.harmony))
-	tracks.append(track(params, tracks, 'mel', melodyNode, ps.melody))
-	tracks[0]["name"] = "Harmony"
-	tracks[1]["name"] = "Melody"
-	project["tracks"] = [tracks[1], tracks[0]]
-	project["drums"] = drums(params)
+	tracks.append(track(params, tracks, "har", harmonyNode, ps.harmony))
+	tracks.append(track(params, tracks, "mel", melodyNode, ps.melody))
+	tracks.append(track(params, tracks, "drm", drumNode, ps.drums))
+	project["tracks"] = [tracks[1], tracks[0], tracks[2]]
 	return project
 
 ###############################################################################
@@ -28,8 +26,9 @@ def song(params):
 ###############################################################################
 
 def track(params, tracks, suffix, newNode, newTrack):
-	random.seed(params["seed" + suffix])
-	track = newTrack()
+	if ("seed" + suffix) in params:
+		random.seed(params["seed" + suffix])
+	t = newTrack()
 	nodes = dict()
 	previous = None
 	for i in params["sections"]:
@@ -39,9 +38,9 @@ def track(params, tracks, suffix, newNode, newTrack):
 		else:
 			node = newNode(params, previous)
 			nodes[i] = node
-		track["pats"] += node
+		t["pats"] += node
 		previous = node
-	return track
+	return t
 
 def melodyNode(params, previous):
 	progession = [0, 0, 0, 3]
@@ -53,11 +52,8 @@ def harmonyNode(params, previous):
 	# TODO: use previous
 	return [ps.triad(0, progession[i]) for i in range(4)]
 
-def drums(params):
-	pats = []
-	for s in params["sections"]:
-		pats += [ps.drums(s)] * 4
-	return pats
+def drumNode(params, previous):
+	return [ps.drumloop(0) for i in range(4)]
 
 ###############################################################################
 # Bar
@@ -65,12 +61,12 @@ def drums(params):
 
 def bar(params, project, pos=-1):
 	empty = ps.emptyBar()
-	for track in projects["tracks"]:
+	for t in projects["tracks"]:
 		if pos == -1:
-			pos = len(track["pats"]) - 1
-		if pos >= 0 and pos < len(track["pats"]):
-			previous = track["pats"][pos]
+			pos = len(t["pats"]) - 1
+		if pos >= 0 and pos < len(t["pats"]):
+			previous = t["pats"][pos]
 		else:
 			previous = empty
 		# TODO: new bar from previous
-		track["pats"].append(previous)
+		t["pats"].append(previous)

@@ -6,6 +6,7 @@ KEYS = ["vol", "rev", "pan", "cho"]
 NAMES = ["Vol", "Rvrb", "Pan", "Chor"]
 POS = [(2, 0, 3, 0), (4, 0, 5, 0), (2, 1, 3, 1), (4, 1, 5, 1)]
 INSTS = [str(i) + ": " + midi.INSTRUMENT_MAP[i] for i in range(len(midi.INSTRUMENT_MAP))]
+INSTS.append("%s: Drums" % len(midi.INSTRUMENT_MAP))
 
 class TrackGroup(tkinter.LabelFrame):
 
@@ -128,7 +129,7 @@ class TrackSelector(ui_common.SelectionFrame):
 			self._items[index].barSelector.setPats([])
 
 	def buildItem(self, index=None):
-		index = index or self._current
+		index = self._current if index is None else index
 		track = {}
 		track["name"] = self._trackVars["name"][index].get()
 		track["inst"] = INSTS.index(self._trackVars["inst"][index].get())

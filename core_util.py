@@ -25,31 +25,25 @@ def moveKey(keysig, degree):
 # MIDI Convertion
 ###############################################################################
 
-def createBarNotes(pat, keysig):
+def createBarNotes(pat, keysig=None, pitchMap=None):
 	notes = []
 	for melody in pat["riff"]:
 		for i in range(len(melody["attacks"])):
 			if melody["pitches"][i] == -127:
 				continue
-			pitch = getPitch(keysig, melody["pitches"][i]) + melody["acc"][i]
+			pitch = melody["acc"][i]
+			if keysig:
+				pitch += getPitch(keysig, melody["pitches"][i])
+			else:
+				pitch += melody["pitches"][i]
+			if pitchMap:
+				pitch = pitchMap[pitch]
 			# Time in bars: unit * bar / unit
 			start = melody["attacks"][i] / pat["divs"]
 			if i < len(melody["attacks"]) - 1:
 				end = melody["attacks"][i+1] / pat["divs"]
 			else:
 				end = 1
-			notes.append(pretty_midi.Note(127, pitch, start, end))
-	return notes
-
-def createBarDrums(drums, drumset):
-	notes = []
-	for layer in drums["attacks"]:
-		for i in range(len(layer)):
-			if layer[i] == 0:
-				continue
-			pitch = drumset[layer[i]-1]
-			start = i / drums["divs"]
-			end = (i+1) / drums["divs"]
 			notes.append(pretty_midi.Note(127, pitch, start, end))
 	return notes
 
