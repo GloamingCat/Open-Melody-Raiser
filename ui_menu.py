@@ -9,12 +9,15 @@ class CommonMenu(tkinter.Menu):
 			move=True, replace=True):
 		super().__init__(window, tearoff=False)
 		self.window = window
-		self.addMenu = tkinter.Menu(self, tearoff=False)
-		self.add_cascade(label="Add "+typeName, menu=self.addMenu)
-		self.addMenu.add_command(label="Empty", command=self.onAddNew)
-		self.addMenu.add_command(label="Duplicate", command=self.onDuplicate)
-		if generationDialog:
-			self.addMenu.add_command(label="Generate...", command=self.onGenerateNew)
+		if delMsg:
+			self.addMenu = tkinter.Menu(self, tearoff=False)
+			self.add_cascade(label="Add "+typeName, menu=self.addMenu)
+			self.addMenu.add_command(label="Empty", command=self.onAddNew)
+			self.addMenu.add_command(label="Duplicate", command=self.onDuplicate)
+			if generationDialog:
+				self.addMenu.add_command(label="Generate...", command=self.onGenerateNew)
+		else:
+			self.addMenu = None
 		if replace:
 			replaceMenu = tkinter.Menu(self, tearoff=False)
 			self.add_cascade(label="Replace", menu=replaceMenu)
@@ -53,7 +56,8 @@ class CommonMenu(tkinter.Menu):
 				self.entryconfig(n, state=state)
 			except tkinter.TclError:
 				pass
-		self.addMenu.entryconfig("Duplicate", state=state)
+		if self.addMenu:
+			self.addMenu.entryconfig("Duplicate", state=state)
 
 	###########################################################################
 	# Insert
@@ -163,6 +167,6 @@ class PartMenu(CommonMenu):
 	def __init__(self, window, barGroup):
 		super().__init__(window, "part", receiver=barGroup._partSelector,
 			presetDialog=ui_creation.PartPresetDialog,
-			delMsg="The selected part of the selected bar will be deleted",
-			presets=["Part"])
+			#delMsg="The selected part of the selected bar will be deleted",
+			move=False, presets=["Part"])
 		barGroup._partSelector._menu = self

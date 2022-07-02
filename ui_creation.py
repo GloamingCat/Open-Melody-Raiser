@@ -1,4 +1,4 @@
-import tkinter, core_generator, core_presets
+import tkinter, core_generator, core_presets, core_project
 from tkinter import ttk, simpledialog
 
 class BarCreationFrame(tkinter.LabelFrame):
@@ -14,6 +14,7 @@ class BarCreationFrame(tkinter.LabelFrame):
 		params["npb"+suffix] = tkinter.StringVar(value=2 if suffix == "har" else 4)
 		params["arp"+suffix] = tkinter.StringVar(value=0 if suffix == "har" else 100)
 		params["mod"+suffix] = tkinter.StringVar(value=0)
+		params["seed"+suffix] = tkinter.StringVar(value=0)
 		self.columnconfigure(0, weight=1)
 		self.columnconfigure(1, weight=1)
 		# Octave
@@ -37,7 +38,7 @@ class BarCreationFrame(tkinter.LabelFrame):
 		box = ttk.Spinbox(self, from_=1, to=256, width=4, textvariable = params["npb"+suffix])
 		box.grid(column=1, row=3, sticky=tkinter.EW, padx=5, pady=5)
 		# Riff
-		label = tkinter.Label(self, text="Apeggiation %")
+		label = tkinter.Label(self, text="Arpeggiation %")
 		label.grid(column=0, row=4, sticky=tkinter.W, padx=5, pady=5)
 		box = ttk.Spinbox(self, from_=1, to=16, width=4, textvariable = params["arp"+suffix])
 		box.grid(column=1, row=4, sticky=tkinter.EW, padx=5, pady=5)
@@ -62,23 +63,40 @@ class GenerationDialog(tkinter.simpledialog.Dialog):
 		self.okButton.pack(side=tkinter.LEFT, padx=5, pady=5)
 		self.cancelButton = tkinter.Button(self, text='Cancel', command=self.destroy)
 		self.cancelButton.pack(side=tkinter.LEFT, padx=5, pady=5)
+		self.saveButton = tkinter.Button(self, text='Save Params', command=self.save)
+		self.saveButton.pack(side=tkinter.LEFT, padx=5, pady=5)
+		self.loadButton = tkinter.Button(self, text='Load Params', command=self.load)
+		self.loadButton.pack(side=tkinter.LEFT, padx=5, pady=5)
 		self.bind("<Return>", lambda event: self.confirm())
 		self.bind("<Escape>", lambda event: self.destroy())
 
-	def confirm(self):
-		self.result = {}
+	def buildResult(self):
+		result = {}
 		for k, var in self._params.items():
 			if var.get().isnumeric():
-				self.result[k] = int(var.get())
+				result[k] = int(var.get())
 			else:
-				self.result[k] = var.get()
+				result[k] = var.get()
+		return result
+
+	def save(self):
+		result = self.buildResult()
+		core_project.savePreset(result, "temp.params")
+
+	def load(self):
+		result = core_project.loadPreset("temp.params")
+		for k, var in self._params.items():
+			var.set(result[k])
+
+	def confirm(self):
+		self.result = self.buildResult()
 		self.destroy()
 
 class NewSongDialog(GenerationDialog):
 
 	def body(self, frame):
 		# Structure/rhythm params
-		self._params["bars"] = tkinter.StringVar(value="1 1 2")
+		self._params["sections"] = tkinter.StringVar(value="1 1 2")
 		self._params["bpb"] = tkinter.StringVar(value=4)
 		self._params["bpm"] = tkinter.StringVar(value=60)
 		structFrame = tkinter.LabelFrame(frame, text="General")
@@ -99,7 +117,7 @@ class NewSongDialog(GenerationDialog):
 		# Pattern
 		label = tkinter.Label(structFrame, text="Bar Sequence Pattern")
 		label.grid(column=0, row=1, sticky=tkinter.W, padx=5, pady=5)
-		box = tkinter.Entry(structFrame, textvariable = self._params["bars"])
+		box = tkinter.Entry(structFrame, textvariable = self._params["sections"])
 		box.grid(column=1, row=1, columnspan=2, sticky=tkinter.EW, padx=5, pady=5)
 		structFrame.pack(side=tkinter.TOP, expand=True)
 		# Melody
@@ -117,17 +135,25 @@ class NewSongDialog(GenerationDialog):
 class NewTrackDialog(GenerationDialog):
 
 	def body(self, frame):
+		# TODO
+		self._params["type"] = tkinter.StringVar(value="Harmony")
+		self._params["seed"] = tkinter.StringVar(value=0)
 		return frame
 
 	def confirm(self):
 		super().confirm()
 		project = self.window.buildProject()
 		(trackPos, barPos) = self.window.trackGroup.getSelection()
-		self.result = core_generator.track(self.result, project["tracks"], trackPos)
+		self.result["bars"] = len(project["tracks"][trackPos]["pats"])
+		if self.result["type"] == "Harmony":
+			self.result = core_generator.harmony(self.result, project["tracks"], trackPos)
+		else:
+			self.result = core_generator.melody(self.result, project["tracks"], trackPos)
 
 class NewBarDialog(GenerationDialog):
 
 	def body(self, frame):
+		# TODO
 		return frame
 
 	def confirm(self):
@@ -139,6 +165,7 @@ class NewBarDialog(GenerationDialog):
 class BarPresetDialog(GenerationDialog):
 
 	def body(self, frame):
+		# TODO
 		self._params["type"] = tkinter.StringVar(value="Triad")
 		self._params["number"] = tkinter.StringVar(value=0)
 		return frame
@@ -153,9 +180,20 @@ class BarPresetDialog(GenerationDialog):
 class PartPresetDialog(GenerationDialog):
 
 	def body(self, frame):
+		# TODO
 		self._params["number"] = tkinter.StringVar(value=0)
 		return frame
 
 	def confirm(self):
 		super().confirm()
 		self.result = core_presets.arp(self.result["number"], 0)
+
+###############################################################################
+# Quick Test
+###############################################################################
+
+if __name__ == "__main__":
+	main = tkinter.Tk()
+	dialog = NewSongDialog(main, title="Generate new song")
+	if dialog.result:
+		core_project.saveProject(dialog.result, "test.proj")

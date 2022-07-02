@@ -24,26 +24,23 @@ def defaultProject():
 	project["drums"] = drums
 	return project
 
-def loadProject(file):
+def loadPreset(file):
 	f = open(file, "r")
-	obj = json.loads(f.read())
+	obj = json.load(f)
 	f.close()
 	return obj
 
-def loadPreset(file):
-	f = open(file, "r")
-	obj = json.loads(f.read())
-	f.close()
-	return obj
+def loadProject(file):
+	return loadPreset(file)
 
 ###############################################################################
 # Write
 ###############################################################################
 	
-def exportMidi(project, file = "temp.mid"):
+def exportMidi(project, file="temp.mid"):
 	midi = pretty_midi.PrettyMIDI(initial_tempo = project["bpm"])
 	# Header
-	keysig = pretty_midi.KeySignature(_getKeyNumber(project["keysig"]), 0)
+	keysig = pretty_midi.KeySignature(util.getKeyNumber(project["keysig"]), 0)
 	midi.key_signature_changes.append(keysig)
 	timesig = pretty_midi.TimeSignature(project["timesig"][0], project["timesig"][1], 0)
 	midi.time_signature_changes.append(timesig)
@@ -52,7 +49,7 @@ def exportMidi(project, file = "temp.mid"):
 	for track in project["tracks"]:
 		miditrack = pretty_midi.Instrument(program = track["inst"], name = track["name"])
 		for i, pat in enumerate(track["pats"]):
-			notes = util.createBarNotes(pat, _moveKey(project["keysig"], pat["root"]))
+			notes = util.createBarNotes(pat, util.moveKey(project["keysig"], pat["root"]))
 			for n in notes:
 				n.start = (i + n.start) * spb
 				n.end = (i + n.end) * spb
@@ -68,8 +65,8 @@ def exportMidi(project, file = "temp.mid"):
 	drumtrack.control_changes.append(pretty_midi.ControlChange(10, project["pan"], 0))
 	drumtrack.control_changes.append(pretty_midi.ControlChange(91, project["rev"], 0))
 	drumtrack.control_changes.append(pretty_midi.ControlChange(93, project["cho"], 0))
-	for i in range(len(project["drums"])):
-		notes = util.createBarDrums(project["drums"][i], project["drumset"])
+	for i, pat in enumerate(project["drums"]):
+		notes = util.createBarDrums(pat, project["drumset"])
 		for n in notes:
 			n.start = (i + n.start) * spb
 			n.end = (i + n.end) * spb
@@ -79,7 +76,7 @@ def exportMidi(project, file = "temp.mid"):
 
 def savePreset(preset, file):
 	f = open(file, "w")
-	f.write(json.dumps(preset))
+	f.write(json.dumps(preset, indent=4))
 	f.close()
 
 def saveProject(project, file):
@@ -109,10 +106,12 @@ def addBars(project, barCount=0):
 
 if __name__ == '__main__':
 	if len(sys.argv) <= 1:
+		# Test default project
 		project = defaultProject()
 		exportMidi(project, "temp.mid")
 		saveProject(project, "defaultProject.proj")
 	elif sys.argv[1] == "pretty_midi":
+		# Test pretty midi
 		cello_c_chord = pretty_midi.PrettyMIDI()
 		cello_program = pretty_midi.instrument_name_to_program('Cello')
 		cello = pretty_midi.Instrument(program=cello_program)

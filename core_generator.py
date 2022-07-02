@@ -5,55 +5,72 @@ import core_presets as ps
 # Song
 ###############################################################################
 
-def project(params):
+# Generates a full song according to given parameters.
+def song(params):
 	project = ps.song()
 	project["timesig"][0] = params["bpb"]
 	project["bpm"] = params["bpm"]
-	params["seedmel"] = 0
-	params["seedhar"] = 0
-	params["bars"] = [int(s) for s in params["bars"].split()]
-	song(project, params)
-	return project
-
-def song(project, params):
-	har = [harmony(0, params)]
-	mel = [melody(0, params, har[0])]
-	for i in range(1, len(params["bars"])):
-		har.append(harmony(i, params, har[i-1]))
-		mel.append(melody(i, params, har[0], mel[i-1]))
-	drums = [ps.drums(0)] * len(params["bars"])
-	project["tracks"][0]["pats"] = mel
-	project["tracks"][1]["pats"] = har
-	project["drums"] = drums
+	if type(params["sections"]) is str:
+		params["sections"] = [int(s) for s in params["sections"].split()]
+	elif type(params["sections"]) is int:
+		params["sections"] = [params["sections"]]
+	tracks = []
+	tracks.append(track(params, tracks, 'har', harmonyNode, ps.harmony))
+	tracks.append(track(params, tracks, 'mel', melodyNode, ps.melody))
+	tracks[0]["name"] = "Harmony"
+	tracks[1]["name"] = "Melody"
+	project["tracks"] = [tracks[1], tracks[0]]
+	project["drums"] = drums(params)
 	return project
 
 ###############################################################################
 # Track
 ###############################################################################
 
-def track(params, tracks, pos=-1):
-	# Placeholder
-	return ps.emptyTrack()
+def track(params, tracks, suffix, newNode, newTrack):
+	random.seed(params["seed" + suffix])
+	track = newTrack()
+	nodes = dict()
+	previous = None
+	for i in params["sections"]:
+		node = None
+		if i in nodes:
+			node = nodes[i]
+		else:
+			node = newNode(params, previous)
+			nodes[i] = node
+		track["pats"] += node
+		previous = node
+	return track
 
-def melody(params, tracks, pos=-1):
-	# Temporary
-	random.seed(params["seedmel"])
-	if seq == len(params["bars"]) - 1:
-		# Last bar
-		return ps.arp(seq, 3)
-	else:
-		return ps.arp(seq, 0)
+def melodyNode(params, previous):
+	progession = [0, 0, 0, 3]
+	# TODO: use previous
+	return [ps.arp(i, progession[i]) for i in range(4)] 
 
-progession = [0, 2, 4, 3]
-def harmony(params, tracks, pos=-1):
-	# Temporary
-	random.seed(params["seedhar"])
-	return ps.triad(0, progession[seq % 4])
+def harmonyNode(params, previous):
+	progession = [0, 2, 4, 3]
+	# TODO: use previous
+	return [ps.triad(0, progession[i]) for i in range(4)]
+
+def drums(params):
+	pats = []
+	for s in params["sections"]:
+		pats += [ps.drums(s)] * 4
+	return pats
 
 ###############################################################################
 # Bar
 ###############################################################################
 
 def bar(params, project, pos=-1):
-	# Placeholder
-	return ps.emptyBar()
+	empty = ps.emptyBar()
+	for track in projects["tracks"]:
+		if pos == -1:
+			pos = len(track["pats"]) - 1
+		if pos >= 0 and pos < len(track["pats"]):
+			previous = track["pats"][pos]
+		else:
+			previous = empty
+		# TODO: new bar from previous
+		track["pats"].append(previous)
